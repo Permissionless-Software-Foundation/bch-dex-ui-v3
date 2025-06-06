@@ -10,6 +10,10 @@ import BchDexLib from 'bch-dex-lib'
 import GistServers from './gist-servers'
 import Nostr from './nostr'
 import P2WDB from 'p2wdb'
+import { base58_to_binary as base58ToBinary } from 'base58-js'
+import { bytesToHex } from '@noble/hashes/utils' // already an installed dependency
+import { getPublicKey } from 'nostr-tools/pure'
+import * as nip19 from 'nostr-tools/nip19'
 
 class AsyncLoad {
   constructor () {
@@ -59,8 +63,14 @@ class AsyncLoad {
       await wallet.walletInfoPromise
       await wallet.initialize()
       console.log('starting to update wallet state.')
+
+      // Get Nostr key pair from WIF
+      const nostrKeyPair = this.nostrKeyPairFromWIF(wallet.walletInfo.privateKey)
+      console.log('nostrKeyPair: ', nostrKeyPair)
+      const walletInfo = wallet.walletInfo
+      walletInfo.nostrKeyPair = nostrKeyPair
       // Update the state of the wallet.
-      appData.updateBchWalletState({ walletObj: wallet.walletInfo, appData })
+      appData.updateBchWalletState({ walletObj: walletInfo, appData })
       console.log('finished updating wallet state.')
       // Save the mnemonic to local storage.
       if (!mnemonic) {
@@ -244,6 +254,33 @@ class AsyncLoad {
     } catch (error) {
       console.error('Error in getP2WDBLib', error)
       throw error
+    }
+  }
+
+  // Get Nostr key pair from WIF
+  nostrKeyPairFromWIF (WIF) {
+    if (!WIF) return
+
+    // Extract the privaty key from the WIF, using this guide:
+    // https://learnmeabitcoin.com/technical/keys/private-key/wif/
+    const wifBuf = base58ToBinary(WIF)
+    const privBuf = wifBuf.slice(1, 33)
+    // console.log('privBuf: ', privBuf)
+    // Convert the private key to a hex string
+    const privHex = bytesToHex(privBuf)
+    // Convert the private key to a Nostr NSEC key
+    const nsec = nip19.nsecEncode(privBuf)
+
+    // Get the public key hex string from the private key
+    const pubHex = getPublicKey(privBuf)
+    // Convert the public key to a Nostr NPUB key
+    const npub = nip19.npubEncode(pubHex)
+
+    return {
+      privHex,
+      pubHex,
+      nsec,
+      npub
     }
   }
 }

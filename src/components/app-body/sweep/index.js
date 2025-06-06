@@ -41,7 +41,10 @@ const SweepWif = (props) => {
 
   // Handle sweep function
   const handleSweep = async (e) => {
-    e.preventDefault()
+    if (e) {
+      e.preventDefault()
+    }
+
     try {
       console.log(`Sweeping this WIF: ${wifToSweep}`)
 
@@ -112,13 +115,16 @@ const SweepWif = (props) => {
       // setStatusMsg('')
 
       // Get the keypair that holds Counter Offer UTXOs.
-      const bchDexLib = appData.dexLib
-      const keyPair = await bchDexLib.take.util.getKeyPair(1)
+      // const bchDexLib = appData.dexLib
+      // const keyPair = await bchDexLib.take.util.getKeyPair(2)
+
+      const wallet = appData.wallet
+      const keyPair = await wallet.getKeyPair(2)
       const wif = keyPair.wif
-      // console.log(`WIF: ${wif}`)
+      console.log(`WIF: ${wif}`)
 
       // Sweep the private key holding the Counter Offer UTXOs.
-      setWifToSweep(wif)
+      await setWifToSweep(wif)
 
       await handleSweep()
     } catch (err) {

@@ -16,13 +16,16 @@ import CopyOnClick from './copy-on-click'
 function WalletSummary (props) {
   // Props
   const appData = props.appData
-
   const bchWalletState = appData.bchWalletState
+
   console.log('wallet summary state: ', bchWalletState)
 
   // State
   const [blurredMnemonic, setBlurredMnemonic] = useState(true)
   const [blurredPrivateKey, setBlurredPrivateKey] = useState(true)
+  const [blurredNostrPrivKey, setBlurredNostrPrivKey] = useState(true)
+
+  const [nostrKeyPair] = useState(bchWalletState.nostrKeyPair)
 
   // Encapsulate component state into an object that can be passed to child functions
   const walletSummaryData = {
@@ -59,6 +62,15 @@ function WalletSummary (props) {
       // toggle the state of blurring
       const blurredState = walletSummaryData.blurredPrivateKey
       walletSummaryData.setBlurredPrivateKey(!blurredState)
+    } catch (error) {
+      console.error('Error toggling private key blur: ', error)
+    }
+  }
+
+  // Toggle the state of blurring for the private key
+  const toggleNostrPrivateKeyBlur = (inObj = {}) => {
+    try {
+      setBlurredNostrPrivKey(!blurredNostrPrivKey)
     } catch (error) {
       console.error('Error toggling private key blur: ', error)
     }
@@ -149,6 +161,32 @@ function WalletSummary (props) {
                     <Col xs={6} sm={1} lg={2} style={{ textAlign: 'center' }} />
                     <Col xs={6} sm={1} lg={2} style={{ textAlign: 'center' }}>
                       <CopyOnClick walletProp='hdPath' appData={appData} value={bchWalletState.hdPath} />
+                    </Col>
+                  </Row>
+                  <Row style={{ padding: '25px', backgroundColor: '#eee' }}>
+                    <Col xs={10} sm={10} lg={8} style={{ padding: '10px' }}>
+                      <b>Nostr Priv Key:</b> <span className={blurredNostrPrivKey ? 'blurred' : null}>{nostrKeyPair.nsec}</span>
+                    </Col>
+                    <Col xs={6} sm={1} lg={2} style={{ textAlign: 'center' }}>
+                      <FontAwesomeIcon
+                        style={{ cursor: 'pointer' }}
+                        icon={eyeIcon.privateKey}
+                        size='lg'
+                        onClick={() => toggleNostrPrivateKeyBlur(nostrKeyPair.nsec)}
+                      />
+                    </Col>
+                    <Col xs={6} sm={1} lg={2} style={{ textAlign: 'center' }}>
+                      <CopyOnClick appData={appData} value={nostrKeyPair.nsec} />
+                    </Col>
+                  </Row>
+                  <Row style={{ padding: '25px', backgroundColor: '#eee' }}>
+                    <Col xs={10} sm={10} lg={8} style={{ padding: '10px' }}>
+                      <b>Nostr Pub Key:</b> {nostrKeyPair.npub}
+                    </Col>
+                    <Col xs={6} sm={1} lg={2} style={{ textAlign: 'center' }} />
+
+                    <Col xs={6} sm={1} lg={2} style={{ textAlign: 'center' }}>
+                      <CopyOnClick appData={appData} value={nostrKeyPair.npub} />
                     </Col>
                   </Row>
                 </Container>

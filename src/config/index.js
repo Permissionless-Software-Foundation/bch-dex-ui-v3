@@ -17,6 +17,9 @@ const config = {
   dexServer: 'https://dex-api.fullstack.cash'
   //dexServer: 'http://localhost:5700'
 
+  nostrTopic: 'bch-dex-test-topic-02',
+  nostrRelay: 'wss://nostr-relay.psfoundation.info'
+
 }
 
 export default config

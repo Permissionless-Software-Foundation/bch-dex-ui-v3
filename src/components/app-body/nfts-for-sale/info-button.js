@@ -6,11 +6,12 @@
 */
 
 // Global npm libraries
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button, Modal, Container, Row, Col } from 'react-bootstrap'
 
 function InfoButton (props) {
   const [show, setShow] = useState(false)
+  const [mutableDataCid, setMutableDataCid] = useState(null)
 
   const handleClose = () => {
     console.log('handleClose()')
@@ -22,6 +23,32 @@ function InfoButton (props) {
     console.log('handleOpen()')
     setShow(true)
   }
+  // Get Cid from url
+  const parseCid = (url) => {
+    // get the cid from the url format 'ipfs://bafybeicem27xbzs65uvbcgykcmscsgln3lmhbfrcoec3gdttkdgtxv5acq
+    if (url && url.includes('ipfs://')) {
+      const cid = url.split('ipfs://')[1]
+      return cid
+    }
+    return url
+  }
+
+  // Get token user data if it exists and verify if it contains media or markdown
+  useEffect(() => {
+    try {
+      const userDataStr = props.token.tokenData.userData
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr)
+
+        // If user data contains media or markdown, set the mutable data cid
+        if (userData?.media || userData?.markdown) {
+          setMutableDataCid(parseCid(props.token.tokenData.mutableData))
+        }
+      }
+    } catch (error) {
+      // Do nothing
+    }
+  }, [props.token, show])
 
   // Replace with dummy button until token data is loaded.
   if (!props.token.tokenData) {
@@ -69,6 +96,22 @@ function InfoButton (props) {
               <Col xs={4}><b>Token Type</b>:</Col>
               <Col xs={8}>{props.token.tokenType}</Col>
             </Row>
+
+            {mutableDataCid && (
+              <Row>
+                <Col xs={4}><b>User Data</b>:</Col>
+                <Col xs={8}>
+                  <a
+                    href={`/user-data/${mutableDataCid}`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='btn btn-link p-0'
+                  >
+                    View User Data
+                  </a>
+                </Col>
+              </Row>
+            )}
 
           </Container>
         </Modal.Body>

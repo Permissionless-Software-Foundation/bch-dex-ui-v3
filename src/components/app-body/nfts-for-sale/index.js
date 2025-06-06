@@ -98,10 +98,12 @@ function NftsForSale (props) {
 
         // Try to get token data.
         const tokenData = await appData.wallet.getTokenData(thisToken.tokenId)
-
+        console.log('tokenData', tokenData)
         if (tokenData) {
           // Set data to the token object , this can be used to display the token name in the token card component.
           thisToken.tokenData = tokenData
+          // Update the cache data  providing the tokenId to update and the data
+          appData.updateNFTCacheData(thisToken.tokenId, { tokenData })
         }
 
         // Mark token to prevent fetch token data again.
@@ -115,7 +117,7 @@ function NftsForSale (props) {
   }, [appData])
 
   // Fetch mutable data if it exist and get the token icon url
-  const fetchTokenInfo = useCallback(async (token) => {
+  const fetchTokenMutableData = useCallback(async (token) => {
     try {
       // Get the token data
       const tokenData = token.tokenData
@@ -135,15 +137,16 @@ function NftsForSale (props) {
       if (json.fullSizedUrl && json.fullSizedUrl.includes('http')) {
         iconUrl = json.fullSizedUrl
       }
+      const userData = json.userData
       // Return icon url
-      return iconUrl
+      return { iconUrl, userData }
     } catch (error) {
       return false
     }
   }, [appData])
 
   //  This function loads the token icons from the ipfs gateways.
-  const lazyLoadTokenIcons = useCallback(async (tokens) => {
+  const lazyLoadMutableData = useCallback(async (tokens) => {
     try {
       setIconsAreLoaded(false)
       // map each token and fetch the icon url
@@ -154,11 +157,14 @@ function NftsForSale (props) {
         if (thisToken.iconAlreadyDownloaded) continue
 
         // Try to get token icon url from mutable data.
-        const iconUrl = await fetchTokenInfo(thisToken)
+        const { iconUrl, userData } = await fetchTokenMutableData(thisToken)
         console.log('iconUrl', iconUrl)
         if (iconUrl) {
           // Set the icon url to the token , this can be used to display the icon in the token card component.
           thisToken.icon = iconUrl
+          thisToken.tokenData.userData = userData
+          // Update the cache data  providing the tokenId to update and the data
+          appData.updateNFTCacheData(thisToken.tokenId, { tokenIcon: iconUrl })
         }
 
         // Mark token to prevent fetch token icon again.
@@ -169,7 +175,22 @@ function NftsForSale (props) {
     } catch (error) {
       setIconsAreLoaded(true)
     }
-  }, [fetchTokenInfo])
+  }, [fetchTokenMutableData, appData])
+
+  // Load tokens data from the cache
+  const loadCacheData = useCallback(async (offers) => {
+    const cacheData = appData.nftForSaleData
+    console.log(`Token data from cache: ${JSON.stringify(cacheData, null, 2)}`)
+    // Map all offers and add cache data to the offers if it exists
+    for (let i = 0; i < offers.length; i++) {
+      const thisToken = offers[i]
+      const cacheToken = cacheData[thisToken.tokenId]
+      if (cacheToken) {
+        thisToken.tokenData = cacheToken.tokenData
+        thisToken.icon = cacheToken.tokenIcon
+      }
+    }
+  }, [appData])
 
   // Main function to load NFT offers
   const loadNftOffers = useCallback(async () => {
@@ -178,17 +199,18 @@ function NftsForSale (props) {
       // Get tokens in offers
       const offers = await getNftOffers()
       console.log('offers: ', offers)
+      await loadCacheData(offers)
       setOffers(offers)
       // Load tokens data
       await lazyLoadTokenData(offers)
       // Load tokens icons
-      await lazyLoadTokenIcons(offers)
+      await lazyLoadMutableData(offers)
       setIsLoading(false)
     } catch (err) {
       setIsLoading(false)
       console.error('Error loading NFT offers:', err)
     }
-  }, [lazyLoadTokenData, lazyLoadTokenIcons, getNftOffers])
+  }, [lazyLoadTokenData, lazyLoadMutableData, getNftOffers, loadCacheData])
 
   // Effect to load NFTs on component mount
   useEffect(() => {
