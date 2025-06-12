@@ -3,11 +3,11 @@
 
    workflow:
    1. Load offers
-   2. display token cards with current offers data
+   2. Display token cards with current Offer data
    3. Load tokens data
-   4. add data to offers and update card with new data
+   4. Add data to offers and update card with new data
    5. Load tokens icons
-   6. add icons to offers and update card with new icons
+   6. Add icons to offers and update card with new icons
 */
 
 // Global npm libraries
@@ -20,6 +20,7 @@ import { faRedo } from '@fortawesome/free-solid-svg-icons'
 // Local libraries
 import config from '../../../config'
 import TokenCard from './token-card'
+
 // Global variables and constants
 const SERVER = config.dexServer
 
@@ -173,7 +174,7 @@ function NftsForSale (props) {
     }
   }, [fetchTokenMutableData, appData])
 
-  //  Check if exiist token data in the cache and add it to the tokens object
+  //  Check if token data exists in the cache and add it to the tokens object.
   const reviewNftCachedData = useCallback(async (offers) => {
     const cacheData = appData.nftForSaleCacheData
     console.log(`Token data from cache: ${JSON.stringify(cacheData, null, 2)}`)
@@ -189,7 +190,7 @@ function NftsForSale (props) {
     }
   }, [appData])
 
-  //  Check if exiist token data in the cache and add it to the tokens object
+  //  Check if token data exists in the cache and add it to the tokens object.
   const updateNFTCachedData = useCallback(async (offers) => {
     // Map all offers
     for (let i = 0; i < offers.length; i++) {
@@ -216,7 +217,7 @@ function NftsForSale (props) {
       await reviewNftCachedData(offers)
       // set state to start displaying tokens cards.
       setOffers(offers)
-      // Load tokens data for  any updates to the token data
+      // Load tokens data for any updates to the token data
       await lazyLoadTokenData(offers)
       // Load tokens icons from mutable data
       await lazyLoadMutableData(offers)

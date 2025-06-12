@@ -1,5 +1,5 @@
 /**
- *  Component for read nostr information kind 1
+ * Component for reading global nostr posts
  */
 // Global npm libraries
 import React, { useEffect, useState } from 'react'
@@ -9,21 +9,18 @@ import { faUser } from '@fortawesome/free-solid-svg-icons'
 
 import { RelayPool } from 'nostr'
 
-function PublicRead (props) {
+function Feed (props) {
   const { bchWalletState } = props.appData
   const [posts, setPosts] = useState([])
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    // Get Last post from a author
     const start = () => {
-      const { nostrKeyPair } = bchWalletState
-
       const psf = 'wss://nostr-relay.psfoundation.info'
 
       const pool = RelayPool([psf])
       pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 5, kinds: [1], authors: [nostrKeyPair.pubHex] })
+        relay.subscribe('REQ', { limit: 10, kinds: [1], '#t': ['slpdex-socialmedia'] })
       })
 
       pool.on('eose', relay => {
@@ -34,6 +31,7 @@ function PublicRead (props) {
 
       pool.on('event', (relay, subId, ev) => {
         console.log('Received event:', ev)
+        // const profile = JSON.parse(ev.content)
         setPosts(currentPosts => [...currentPosts, ev])
       })
     }
@@ -44,7 +42,7 @@ function PublicRead (props) {
   }, [bchWalletState, loaded])
 
   return (
-    <Container className='mt-4'>
+    <Container className='mt-4 mb-5' style={{ marginBottom: '50px' }}>
       <div>
         {posts.map((post, index) => (
           <Card key={index} className='mb-4 bg-light rounded-4 shadow-sm border-0'>
@@ -61,9 +59,11 @@ function PublicRead (props) {
                   <FontAwesomeIcon icon={faUser} size='1x' color='#7c7c7d' />
                 </div>
                 <div className='flex-grow-1'>
-                  <div className='fw-bold mb-1'>{props.profile?.name}</div>
+                  <div className='fw-bold mb-1'>
+                    {post.pubkey.slice(0, 8) + '...'}
+                  </div>
                   <small className='text-muted'>
-                    {`${bchWalletState.nostrKeyPair.npub.slice(0, 8)}...${bchWalletState.nostrKeyPair.npub.slice(-5)}`}
+                    {`${post.pubkey.slice(0, 8)}...${post.pubkey.slice(-5)}`}
                   </small>
                 </div>
                 <small className='text-muted'>
@@ -84,6 +84,7 @@ function PublicRead (props) {
             <div>No posts found</div>
           </div>
         )}
+
         {!loaded && (
           <div className='text-center text-muted py-5 bg-light rounded-4 shadow-sm'>
             <Spinner animation='border' />
@@ -94,4 +95,4 @@ function PublicRead (props) {
   )
 }
 
-export default PublicRead
+export default Feed
