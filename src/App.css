@@ -41,6 +41,9 @@
   width: auto!important;
 }
 
+.cursor-pointer {
+  cursor: pointer;
+}
 
 /* Remove input number arrows Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
