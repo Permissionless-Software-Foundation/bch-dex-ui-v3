@@ -7,7 +7,7 @@ import { Container, Button } from 'react-bootstrap'
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
-
+import NostrFormat from '../nostr-format'
 import { RelayPool } from 'nostr'
 
 function ProfileRead (props) {
@@ -74,7 +74,9 @@ function ProfileRead (props) {
             </span>
             <CopyOnClick walletProp='npub' appData={props.appData} value={bchWalletState.nostrKeyPair.npub} />
           </div>
-          <div className='fs-6 text-secondary'>{post.about}</div>
+          <div className='fs-6 text-secondary'>
+            <NostrFormat content={post.about} />
+          </div>
         </div>
         <div className='d-flex gap-2 align-items-center flex-wrap justify-content-center'>
           <Button
