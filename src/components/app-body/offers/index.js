@@ -85,6 +85,53 @@ function Offers (props) {
       console.warn('Error in getOffers() ', err)
     }
   }
+  const handleBuy = useCallback(async (event) => {
+    try {
+      console.log('Buy button clicked. Event: ', event)
+
+      const targetOfferEventId = event.target.id
+      console.log('targetOfferEventId: ', targetOfferEventId)
+
+      // Initialize modal
+      setShowModal(true)
+      setModalBody(['Generating Counter Offer...', '(This can take a couple minutes)'])
+      setHideSpinner(false)
+      setDenyClose(true)
+
+      // Generate a counter offer.
+      const bchDexLib = appData.dexLib
+      const { offerData, partialHex } = await bchDexLib.take.takeOffer(
+        targetOfferEventId
+      )
+
+      // Upload the counter offer to Nostr.
+      const nostr = appData.nostr
+      const { eventId, noteId } = await nostr.testNostrUpload({
+        offerData,
+        partialHex
+      })
+
+      console.log('eventId: ', eventId)
+      console.log('noteId: ', noteId)
+
+      // update output modal
+      const newModalBody = []
+      newModalBody.push('Success!')
+      newModalBody.push('What happens next:')
+      newModalBody.push('The money has not yet left your wallet! It is still under your control.')
+      newModalBody.push('If the sellers node is online, they will accept the Counter Offer you just generated in a few minutes.')
+      newModalBody.push('If the tokens never show up, you can sweep the funds back into your wallet.')
+
+      setModalBody(newModalBody)
+      setHideSpinner(true)
+      setDenyClose(false)
+    } catch (error) {
+      console.warn('Error in handleBuy() ', error)
+      setModalBody(['Buy failed: ', error.message])
+      setHideSpinner(true)
+      setDenyClose(false)
+    }
+  }, [appData]) // Dependencies: appData since it's used inside the callback
 
   // Get Offer data and manipulate it for the sake of presentation.
   const handleOffers = useCallback(async () => {
@@ -129,54 +176,7 @@ function Offers (props) {
 
     setOffers(formattedOffers)
     setIsLoading(false)
-  }, [appData])
-
-  const handleBuy = async (event) => {
-    try {
-      console.log('Buy button clicked. Event: ', event)
-
-      const targetOfferEventId = event.target.id
-      console.log('targetOfferEventId: ', targetOfferEventId)
-
-      // Initialize modal
-      setShowModal(true)
-      setModalBody(['Generating Counter Offer...', '(This can take a couple minutes)'])
-      setHideSpinner(false)
-      setDenyClose(true)
-
-      const options = {
-        method: 'post',
-        url: `${SERVER}offer/take`,
-        data: {
-          nostrEventId: targetOfferEventId
-        }
-      }
-
-      const result = await axios.request(options)
-      const { eventId, noteId } = result.data
-      console.log(`Event Id : ${eventId}`)
-      console.log(`Note Id ${noteId}`)
-
-      // Add link to output
-      const newModalBody = []
-      newModalBody.push('Success!')
-      // newModalBody.push(<a href={`https://p2wdb.fullstack.cash/entry/hash/${p2wdbHash}`} target='_blank' rel='noreferrer'>P2WDB Entry</a>)
-
-      newModalBody.push('What happens next:')
-      newModalBody.push('The money has not yet left your wallet! It is still under your control.')
-      newModalBody.push('If the sellers node is online, they will accept the Counter Offer you just generated in a few minutes.')
-      newModalBody.push('If the tokens never show up, you can sweep the funds back into your wallet.')
-
-      setModalBody(newModalBody)
-      setHideSpinner(true)
-      setDenyClose(false)
-    } catch (error) {
-      console.warn('Error in handleBuy() ', error)
-      setModalBody(['Buy failed: ', error.message])
-      setHideSpinner(true)
-      setDenyClose(false)
-    }
-  }
+  }, [appData, handleBuy])
 
   useEffect(() => {
     // Retrieve initial offer data

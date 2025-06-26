@@ -7,6 +7,7 @@ import { Card, Spinner } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
 import * as nip19 from 'nostr-tools/nip19'
+import NostrFormat from '../nostr-format'
 
 function FeedCard (props) {
   const { post, appData, profiles } = props
@@ -87,7 +88,7 @@ function FeedCard (props) {
         </div>
         <div className='mb-4'>
           <div className='fs-5 ms-5 text-dark' style={{ lineHeight: '1.3' }}>
-            {post.content}
+            <NostrFormat content={post.content} />
           </div>
         </div>
       </Card.Body>

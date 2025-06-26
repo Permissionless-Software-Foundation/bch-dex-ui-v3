@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react'
 import { Container, Card, Spinner } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
-
+import NostrFormat from '../nostr-format'
 import { RelayPool } from 'nostr'
 
 function PublicRead (props) {
@@ -72,7 +72,7 @@ function PublicRead (props) {
               </div>
               <div className='mb-4'>
                 <div className='fs-5 ms-5 text-dark' style={{ lineHeight: '1.3' }}>
-                  {post.content}
+                  <NostrFormat content={post.content} />
                 </div>
               </div>
             </Card.Body>

@@ -102,7 +102,7 @@ function InfoButton (props) {
                 <Col xs={4}><b>User Data</b>:</Col>
                 <Col xs={8}>
                   <a
-                    href={`/user-data/${mutableDataCid}`}
+                    href={`/user-data/${props.token.tokenId}`}
                     target='_blank'
                     rel='noopener noreferrer'
                     className='btn btn-link p-0'
