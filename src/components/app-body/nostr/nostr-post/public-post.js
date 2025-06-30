@@ -47,11 +47,14 @@ function PublicPost (props) {
       // Relay list
       const psf = 'wss://nostr-relay.psfoundation.info'
 
+      // BCH address of the user.
+      const bchAddr = bchWalletState.address
+
       // Generate a post.
       const eventTemplate = {
         kind: 1,
         created_at: Math.floor(Date.now() / 1000),
-        tags: [['t', 'slpdex-socialmedia']],
+        tags: [['t', 'slpdex-socialmedia'], ['u', bchAddr]],
         content: formData.content
       }
       console.log(`eventTemplate: ${JSON.stringify(eventTemplate, null, 2)}`)
