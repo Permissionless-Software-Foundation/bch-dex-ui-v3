@@ -1,6 +1,7 @@
 /**
  * Component for reading global nostr posts
  */
+
 // Global npm libraries
 import React, { useEffect, useState, useCallback } from 'react'
 import { Container, Spinner } from 'react-bootstrap'
