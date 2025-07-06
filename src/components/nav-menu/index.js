@@ -86,6 +86,13 @@ function NavMenu (props) {
                 >
                   Nostr Profile
                 </NavLink>
+                <NavLink
+                  className={currentPath === '/content-creators' ? 'nav-link-active' : 'nav-link-inactive'}
+                  to='/content-creators'
+                  onClick={handleClickEvent}
+                >
+                  Content Creators
+                </NavLink>
 
                 <hr />
 
