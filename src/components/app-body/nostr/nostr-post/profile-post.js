@@ -16,7 +16,12 @@ function ProfilePost (props) {
   const { bchWalletState } = props.appData
   const [formData, setFormData] = useState({
     name: '',
-    about: ''
+    about: '',
+    picture: '',
+    display_name: '',
+    website: '',
+    banner: '',
+    bot: false
   })
 
   const [errorMsg, setErrorMsg] = useState('')
@@ -90,7 +95,12 @@ function ProfilePost (props) {
   const resetForm = () => {
     setFormData({
       name: '',
-      about: ''
+      about: '',
+      picture: '',
+      display_name: '',
+      website: '',
+      banner: '',
+      bot: false
     })
   }
 
@@ -134,6 +144,67 @@ function ProfilePost (props) {
                     value={formData.about}
                     onChange={handleInputChange}
                     required
+                  />
+                </Form.Group>
+
+                <Form.Group className='mb-3'>
+                  <Form.Label>Profile Picture URL</Form.Label>
+                  <Form.Control
+                    type='url'
+                    placeholder='Enter URL to your profile picture'
+                    name='picture'
+                    value={formData.picture}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className='mb-3'>
+                  <Form.Label>Display Name</Form.Label>
+                  <Form.Control
+                    type='text'
+                    placeholder='Enter your display name'
+                    name='display_name'
+                    value={formData.display_name}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className='mb-3'>
+                  <Form.Label>Website</Form.Label>
+                  <Form.Control
+                    type='url'
+                    placeholder='Enter your website URL'
+                    name='website'
+                    value={formData.website}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className='mb-3'>
+                  <Form.Label>Banner URL</Form.Label>
+                  <Form.Control
+                    type='url'
+                    placeholder='Enter URL to your banner picture (1024x768 pixels)'
+                    name='banner'
+                    value={formData.banner}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className='mb-3'>
+                  <Form.Check
+                    type='checkbox'
+                    label='This account is for a bot'
+                    name='bot'
+                    checked={formData.bot}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        bot: e.target.checked
+                      })
+                      setSuccessMsg('')
+                      setErrorMsg('')
+                    }}
                   />
                 </Form.Group>
 

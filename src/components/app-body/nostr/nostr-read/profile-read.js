@@ -34,6 +34,7 @@ function ProfileRead (props) {
       pool.on('event', (relay, subId, ev) => {
         console.log('Received event:', ev)
         const profile = JSON.parse(ev.content)
+        console.log('Profile:', profile)
         setPost(profile)
         setProfile(profile)
       })
