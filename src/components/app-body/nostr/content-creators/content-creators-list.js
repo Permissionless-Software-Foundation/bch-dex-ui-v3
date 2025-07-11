@@ -1,15 +1,51 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Container, Spinner } from 'react-bootstrap'
 
 import axios from 'axios'
 // Local libraries
 import config from '../../../../config'
 import ContentCard from './content-card'
+import { RelayPool } from 'nostr'
+
 // Global variables and constants
 const SERVER = config.dexServer
 function ContentCreators (props) {
   const [creators, setCreators] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const { appData } = props
+
+  const [followList, setFollowList] = useState([])
+
+  const getFollowList = useCallback(async () => {
+    const list = await new Promise((resolve, reject) => {
+      let list = []
+      const { nostrKeyPair } = appData.bchWalletState
+      const psf = 'wss://nostr-relay.psfoundation.info'
+
+      const pool = RelayPool([psf])
+      pool.on('open', relay => {
+        relay.subscribe('subid', { limit: 1, kinds: [3], authors: [nostrKeyPair.pubHex] })
+      })
+
+      pool.on('eose', relay => {
+        console.log('Closing Relay')
+        relay.close()
+        /** This ensures to return an empty array if no records are found!
+         *  Applies for new users that don't have a follow list
+        */
+        resolve(list)
+      })
+
+      pool.on('event', (relay, subId, ev) => {
+        console.log('Received event:', ev)
+        list = ev.tags
+        resolve(list)
+      })
+    })
+
+    console.log('Follow List', list)
+    setFollowList(list)
+  }, [appData])
 
   useEffect(() => {
     const loadCreators = async () => {
@@ -25,8 +61,9 @@ function ContentCreators (props) {
 
     if (!loaded) {
       loadCreators()
+      getFollowList()
     }
-  }, [loaded])
+  }, [loaded, followList, getFollowList])
 
   return (
     <Container className='mt-4 mb-5'>
@@ -47,7 +84,13 @@ function ContentCreators (props) {
       {loaded && (
         <div>
           {creators.map((creator, i) => (
-            <ContentCard key={`creator-key${i}`} creator={creator} appData={props.appData} />
+            <ContentCard
+              key={`creator-key${i}`}
+              creator={creator}
+              appData={props.appData}
+              followList={followList}
+              refreshFollowList={getFollowList}
+            />
           ))}
         </div>
       )}

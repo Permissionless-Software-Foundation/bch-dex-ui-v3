@@ -6,12 +6,13 @@ import React, { useState, useEffect } from 'react'
 import { Card } from 'react-bootstrap'
 import Jdenticon from '@chris.troutner/react-jdenticon'
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
+import FollowBtn from './follow-btn.js'
 import { RelayPool } from 'nostr'
 
 function ContentCard (props) {
   const [profile, setProfile] = useState([])
   const [loaded, setLoaded] = useState(false)
-  const { creator } = props
+  const { creator, followList, refreshFollowList } = props
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -103,13 +104,14 @@ function ContentCard (props) {
 
             {/* Action Buttons */}
             <div className='flex-shrink-0 d-flex flex-column gap-2'>
-              <button
-                className='btn btn-outline-danger btn-sm rounded-pill px-3'
-                style={{ fontSize: '0.875rem', minWidth: '100px' }}
-              >
-                <i className='bi bi-person-plus me-1' />
-                Follow
-              </button>
+              <FollowBtn
+                creator={creator}
+                appData={props.appData}
+                creatorProfile={profile}
+                followList={followList}
+                refreshFollowList={refreshFollowList}
+
+              />
               <button
                 className='btn btn-primary btn-sm rounded-pill px-3'
                 style={{ fontSize: '0.875rem', minWidth: '100px' }}
@@ -169,13 +171,13 @@ function ContentCard (props) {
 
             {/* Action Buttons */}
             <div className='d-flex gap-2'>
-              <button
-                className='btn btn-outline-danger btn-sm rounded-pill px-3'
-                style={{ fontSize: '0.875rem' }}
-              >
-                <i className='bi bi-person-plus me-1' />
-                Follow
-              </button>
+              <FollowBtn
+                creator={creator}
+                appData={props.appData}
+                creatorProfile={profile}
+                followList={followList}
+                refreshFollowList={refreshFollowList}
+              />
               <button
                 className='btn btn-primary btn-sm rounded-pill px-3'
                 style={{ fontSize: '0.875rem' }}
