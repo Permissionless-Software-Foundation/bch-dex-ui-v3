@@ -81,8 +81,8 @@ function NavMenu (props) {
                   Nostr Post
                 </NavLink>
                 <NavLink
-                  className={currentPath === '/nostr-read' ? 'nav-link-active' : 'nav-link-inactive'}
-                  to={`/nostr-read/${bchWalletState?.nostrKeyPair?.npub}`}
+                  className={currentPath === '/profile' ? 'nav-link-active' : 'nav-link-inactive'}
+                  to={`/profile/${bchWalletState?.nostrKeyPair?.npub}`}
                   onClick={handleClickEvent}
                 >
                   Nostr Profile

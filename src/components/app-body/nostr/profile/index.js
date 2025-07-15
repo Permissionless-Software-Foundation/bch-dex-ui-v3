@@ -8,8 +8,9 @@ import { Container } from 'react-bootstrap'
 import ProfileRead from './profile-read.js'
 import PublicRead from './public-read.js'
 import { useParams } from 'react-router-dom'
+import SlpTokensDisplay from './slp-tokens-display'
 
-function NostrRead (props) {
+function Profile (props) {
   const [profile, setProfile] = useState(false)
   const { npub } = useParams()
   console.log('npub', npub)
@@ -18,9 +19,10 @@ function NostrRead (props) {
       <Container>
         <ProfileRead {...props} setProfile={setProfile} npub={npub} />
         <PublicRead {...props} profile={profile} npub={npub} />
+        <SlpTokensDisplay {...props} npub={npub} />
       </Container>
     </>
   )
 }
 
-export default NostrRead
+export default Profile

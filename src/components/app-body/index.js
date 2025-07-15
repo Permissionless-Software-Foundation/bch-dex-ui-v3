@@ -26,7 +26,7 @@ import ServerSelectView from './configuration/select-server-view'
 import Login from './account-creation/login'
 import ConfigurationView from './configuration/index'
 import NostrPost from './nostr/nostr-post/index.js'
-import NostrRead from './nostr/nostr-read/index.js'
+import Profile from './nostr/profile/index.js'
 import GlobalFeed from './nostr/global-feed/index.js'
 import ContentCreators from './nostr/content-creators/index.js'
 import UserDataReview from './user-data-review'
@@ -52,7 +52,7 @@ function AppBody (props) {
         <Route path='/configuration' element={<ConfigurationView appData={appData} />} />
         <Route path='/login' element={<Login appData={appData} />} />
         <Route path='/nostr-post' element={<NostrPost appData={appData} />} />
-        <Route path='/nostr-read/:npub' element={<NostrRead appData={appData} />} />
+        <Route path='/profile/:npub' element={<Profile appData={appData} />} />
         <Route path='/global-feed' element={<GlobalFeed appData={appData} />} />
         <Route path='/content-creators' element={<ContentCreators appData={appData} />} />
         <Route path='/user-data/:tokenId' element={<UserDataReview appData={appData} />} />

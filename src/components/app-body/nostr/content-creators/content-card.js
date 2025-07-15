@@ -46,7 +46,7 @@ function ContentCard (props) {
   }, [loaded, creator])
 
   const goToProfile = () => {
-    const profileUrl = `${window.location.origin}/nostr-read/${creator.npub}`
+    const profileUrl = `${window.location.origin}/profile/${creator.npub}`
     window.open(profileUrl, '_blank')
   }
 
