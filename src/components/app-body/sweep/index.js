@@ -40,13 +40,21 @@ const SweepWif = (props) => {
   }
 
   // Handle sweep function
-  const handleSweep = async (e) => {
+  const handleSweep = async (e, wifOverride = null) => {
     if (e) {
       e.preventDefault()
     }
 
     try {
-      console.log(`Sweeping this WIF: ${wifToSweep}`)
+      // Use the override WIF if provided, otherwise use state
+      const wifToUse = wifOverride || wifToSweep
+      console.log(`Sweeping this WIF: ${wifToUse}`)
+
+      // Handle when wifToSweep is empty. I think this is just a state update issue.
+      // if (!wifToSweep) {
+      //   setTimeout(() => handleSweep(), 1000)
+      //   return
+      // }
 
       // Set modal initial state
       setShowModal(true)
@@ -54,7 +62,7 @@ const SweepWif = (props) => {
       setStatusMsg('')
 
       // Input validation
-      const isWIF = validateWIF(wifToSweep)
+      const isWIF = validateWIF(wifToUse)
       if (!isWIF) {
         setHideSpinner(true)
         setStatusMsg(<b style={{ color: 'red' }}>Input is not a WIF private key.</b>)
@@ -66,7 +74,7 @@ const SweepWif = (props) => {
         const toAddr = appData.wallet.slpAddress
 
         // Instance the Sweep library
-        const sweep = new Sweeper(wifToSweep, walletWif, appData.wallet)
+        const sweep = new Sweeper(wifToUse, walletWif, appData.wallet)
         await sweep.populateObjectFromNetwork()
 
         // Constructing the sweep transaction
@@ -124,9 +132,7 @@ const SweepWif = (props) => {
       console.log(`WIF: ${wif}`)
 
       // Sweep the private key holding the Counter Offer UTXOs.
-      await setWifToSweep(wif)
-
-      await handleSweep()
+      await handleSweep(null, wif)
     } catch (err) {
       console.error('Error in handleCancelCounterOffers(): ', err)
     }
@@ -232,6 +238,8 @@ const SweepWif = (props) => {
             </Button>
           </Col>
         </Row>
+        <br />
+        <br />
       </Container>
       {showModal && getModal()}
     </>
