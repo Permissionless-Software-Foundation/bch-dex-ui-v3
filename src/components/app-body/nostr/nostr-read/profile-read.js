@@ -9,21 +9,27 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
 import NostrFormat from '../nostr-format'
 import { RelayPool } from 'nostr'
+import * as nip19 from 'nostr-tools/nip19'
 
 function ProfileRead (props) {
+  const { npub } = props
   const { bchWalletState } = props.appData
+  console.log('npub prop', npub)
   const { setProfile } = props
   const [post, setPost] = useState({})
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const start = () => {
-      const { nostrKeyPair } = bchWalletState
+      const pubHexData = nip19.decode(npub)
+      const pubHex = pubHexData.data
+      console.log('pubhex', pubHex)
       const psf = 'wss://nostr-relay.psfoundation.info'
 
       const pool = RelayPool([psf])
       pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 5, kinds: [0], authors: [nostrKeyPair.pubHex] })
+        relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubHex] })
+        setLoaded(true)
       })
 
       pool.on('eose', relay => {
@@ -42,10 +48,10 @@ function ProfileRead (props) {
       setLoaded(true)
     }
 
-    if (!loaded) {
+    if (!loaded && npub) {
       start()
     }
-  }, [bchWalletState, loaded, setProfile])
+  }, [bchWalletState, loaded, setProfile, npub])
 
   return (
     <Container>

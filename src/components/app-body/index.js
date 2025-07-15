@@ -52,7 +52,7 @@ function AppBody (props) {
         <Route path='/configuration' element={<ConfigurationView appData={appData} />} />
         <Route path='/login' element={<Login appData={appData} />} />
         <Route path='/nostr-post' element={<NostrPost appData={appData} />} />
-        <Route path='/nostr-read' element={<NostrRead appData={appData} />} />
+        <Route path='/nostr-read/:npub' element={<NostrRead appData={appData} />} />
         <Route path='/global-feed' element={<GlobalFeed appData={appData} />} />
         <Route path='/content-creators' element={<ContentCreators appData={appData} />} />
         <Route path='/user-data/:tokenId' element={<UserDataReview appData={appData} />} />

@@ -8,8 +8,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
 import NostrFormat from '../nostr-format'
 import { RelayPool } from 'nostr'
+import * as nip19 from 'nostr-tools/nip19'
 
 function PublicRead (props) {
+  const { npub } = props
   const { bchWalletState } = props.appData
   const [posts, setPosts] = useState([])
   const [loaded, setLoaded] = useState(false)
@@ -17,13 +19,15 @@ function PublicRead (props) {
   useEffect(() => {
     // Get Last post from a author
     const start = () => {
-      const { nostrKeyPair } = bchWalletState
-
+      const pubHexData = nip19.decode(npub)
+      const pubHex = pubHexData.data
+      console.log('pubhex', pubHex)
       const psf = 'wss://nostr-relay.psfoundation.info'
 
       const pool = RelayPool([psf])
       pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 5, kinds: [1], authors: [nostrKeyPair.pubHex] })
+        relay.subscribe('subid', { limit: 5, kinds: [1], authors: [pubHex] })
+        setLoaded(true)
       })
 
       pool.on('eose', relay => {
@@ -38,10 +42,10 @@ function PublicRead (props) {
       })
     }
 
-    if (!loaded) {
+    if (!loaded && npub) {
       start()
     }
-  }, [bchWalletState, loaded])
+  }, [bchWalletState, loaded, npub])
 
   return (
     <Container className='mt-4'>

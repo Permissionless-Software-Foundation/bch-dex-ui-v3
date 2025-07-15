@@ -7,14 +7,17 @@ import React, { useState } from 'react'
 import { Container } from 'react-bootstrap'
 import ProfileRead from './profile-read.js'
 import PublicRead from './public-read.js'
+import { useParams } from 'react-router-dom'
 
 function NostrRead (props) {
   const [profile, setProfile] = useState(false)
+  const { npub } = useParams()
+  console.log('npub', npub)
   return (
     <>
       <Container>
-        <ProfileRead {...props} setProfile={setProfile} />
-        <PublicRead {...props} profile={profile} />
+        <ProfileRead {...props} setProfile={setProfile} npub={npub} />
+        <PublicRead {...props} profile={profile} npub={npub} />
       </Container>
     </>
   )

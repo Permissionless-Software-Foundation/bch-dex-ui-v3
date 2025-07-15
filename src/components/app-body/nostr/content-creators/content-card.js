@@ -45,26 +45,31 @@ function ContentCard (props) {
     }
   }, [loaded, creator])
 
+  const goToProfile = () => {
+    const profileUrl = `${window.location.origin}/nostr-read/${creator.npub}`
+    window.open(profileUrl, '_blank')
+  }
+
   return (
 
     <>
       <Card className='mb-4 bg-light rounded-4 shadow-sm border-0'>
         <Card.Body className='p-4'>
           {/* Desktop Layout - Horizontal */}
-          <div className='d-flex justify-content-end mb-2'>
+          <div className='d-flex justify-content-end mb-2' onClick={goToProfile}>
             <small className='text-muted'>
               {new Date(creator.createdAt).toLocaleString()}
             </small>
           </div>
-          <div className='d-none d-md-flex align-items-center gap-4'>
+          <div className='d-none d-md-flex align-items-center gap-4 cursor-pointer'>
             {/* Profile Picture */}
-            <div className='flex-shrink-0'>
+            <div className='flex-shrink-0' onClick={goToProfile}>
               <Jdenticon size='140' value={creator.npub} />
             </div>
 
             {/* Creator Info */}
             <div className='flex-grow-1'>
-              <h5 className='mb-2 fw-bold'>{profile.name}</h5>
+              <h5 className='mb-2 fw-bold cursor-pointer' onClick={goToProfile}>{profile.name}</h5>
               <p className='text-muted medium mb-3'>{profile.about}</p>
 
               {/* Nostr Public Key */}
@@ -126,12 +131,12 @@ function ContentCard (props) {
           <div className='d-flex d-md-none flex-column align-items-center text-center'>
             {/* Profile Picture */}
             <div className='mb-3'>
-              <Jdenticon size='100' value={creator.npub} />
+              <Jdenticon size='100' value={creator.npub} onClick={goToProfile} />
             </div>
 
             {/* Creator Info */}
             <div className='w-100 mb-3'>
-              <h5 className='mb-2 fw-bold'>{profile.name}</h5>
+              <h5 className='mb-2 fw-bold' onClick={goToProfile}>{profile.name}</h5>
               <p className='text-muted small mb-3'>{profile.about}</p>
 
               {/* Nostr Public Key */}
