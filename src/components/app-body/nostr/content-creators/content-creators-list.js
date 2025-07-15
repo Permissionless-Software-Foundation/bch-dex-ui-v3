@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Container, Spinner } from 'react-bootstrap'
+import { Container, Spinner, Form } from 'react-bootstrap'
 
 import axios from 'axios'
 // Local libraries
@@ -70,8 +70,17 @@ function ContentCreators (props) {
       <div className='mb-4'>
         <h2 className='text-center mb-3'>Content Creators</h2>
         <p className='text-center text-muted'>
-          Discover amazing content creators in the Bitcoin Cash ecosystem
+          Discover amazing creators tokenizing their content.
         </p>
+      </div>
+
+      <div className='mb-4'>
+        <h3>Filters</h3>
+        <Form.Select>
+          <option>Most Followers</option>
+          <option>Most Tokens</option>
+          <option>Most Likes</option>
+        </Form.Select>
       </div>
 
       {!loaded && (

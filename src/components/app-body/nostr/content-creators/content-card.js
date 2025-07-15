@@ -117,6 +117,7 @@ function ContentCard (props) {
                 refreshFollowList={refreshFollowList}
 
               />
+
               <button
                 className='btn btn-primary btn-sm rounded-pill px-3'
                 style={{ fontSize: '0.875rem', minWidth: '100px' }}
@@ -124,6 +125,8 @@ function ContentCard (props) {
                 <i className='bi bi-chat-dots me-1' />
                 Message
               </button>
+
+              <small>Followers: {creator.followerCnt}</small>
             </div>
           </div>
 
