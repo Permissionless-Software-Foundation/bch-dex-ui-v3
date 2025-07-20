@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Container, Spinner, Form } from 'react-bootstrap'
+import { Container, Spinner, Dropdown } from 'react-bootstrap'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faFilter } from '@fortawesome/free-solid-svg-icons'
 
 import axios from 'axios'
 // Local libraries
@@ -12,6 +14,7 @@ const SERVER = config.dexServer
 function ContentCreators (props) {
   const [creators, setCreators] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const [selectedFilter, setSelectedFilter] = useState('Most Followers')
   const { appData } = props
 
   const [followList, setFollowList] = useState([])
@@ -47,13 +50,57 @@ function ContentCreators (props) {
     setFollowList(list)
   }, [appData])
 
+  const loadProfile = useCallback(async (pubKey) => {
+    return new Promise((resolve) => {
+      const psf = 'wss://nostr-relay.psfoundation.info'
+
+      const pool = RelayPool([psf])
+      pool.on('open', relay => {
+        relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubKey] })
+      })
+
+      pool.on('eose', relay => {
+        console.log('Closing Relay')
+        relay.close()
+        resolve(false)
+      })
+
+      pool.on('event', (relay, subId, ev) => {
+        try {
+          const profile = JSON.parse(ev.content)
+          // console.log('profile', profile)
+          resolve(profile)
+        } catch (error) {
+          resolve(false)
+        }
+      })
+    })
+  }, [])
+
   useEffect(() => {
     const loadCreators = async () => {
       try {
-        const creators = await axios.get(`${SERVER}/sm/list/all/0`)
-        console.log(creators.data)
-        setCreators(creators.data)
+        const creatorsRes = await axios.get(`${SERVER}/sm/list/all/0`)
+        const creators = creatorsRes.data
+        // console.log('creators', creators)
+        setCreators(creators)
         setLoaded(true)
+
+        for (let i = 0; i < creators.length; i++) {
+          try {
+            const creator = creators[i]
+            const profile = await loadProfile(creator.pubkey)
+
+            // the folowing lines should re-render the ContentCard
+            setCreators(prevCreators => {
+              const updatedCreators = [...prevCreators]
+              updatedCreators[i] = { ...updatedCreators[i], profile }
+              return updatedCreators
+            })
+          } catch (error) {
+            console.warn(error)
+          }
+        }
       } catch (error) {
         setLoaded(true)
       }
@@ -63,7 +110,21 @@ function ContentCreators (props) {
       loadCreators()
       getFollowList()
     }
-  }, [loaded, followList, getFollowList])
+  }, [loaded, followList, getFollowList, loadProfile])
+
+  const filteredCreators = useCallback(() => {
+    if (!creators || creators.length === 0) {
+      return []
+    }
+
+    let filtered = [...creators]
+
+    if (selectedFilter === 'Most Followers') {
+      filtered = filtered.sort((a, b) => (b.followerCnt || 0) - (a.followerCnt || 0))
+    }
+
+    return filtered
+  }, [creators, selectedFilter])
 
   return (
     <Container className='mt-4 mb-5'>
@@ -74,13 +135,25 @@ function ContentCreators (props) {
         </p>
       </div>
 
-      <div className='mb-4'>
-        <h3>Filters</h3>
-        <Form.Select>
-          <option>Most Followers</option>
-          <option>Most Tokens</option>
-          <option>Most Likes</option>
-        </Form.Select>
+      <div className='mb-4 d-flex justify-content-end'>
+        <Dropdown>
+          <Dropdown.Toggle variant='outline-secondary' className='d-flex align-items-center gap-2'>
+            <FontAwesomeIcon icon={faFilter} />
+            <span>{selectedFilter}</span>
+          </Dropdown.Toggle>
+
+          <Dropdown.Menu>
+            <Dropdown.Item onClick={() => setSelectedFilter('Most Followers')}>
+              Most Followers
+            </Dropdown.Item>
+            <Dropdown.Item onClick={() => setSelectedFilter('Most Tokens')}>
+              Most Tokens
+            </Dropdown.Item>
+            <Dropdown.Item onClick={() => setSelectedFilter('Most Likes')}>
+              Most Likes
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
       </div>
 
       {!loaded && (
@@ -92,7 +165,7 @@ function ContentCreators (props) {
 
       {loaded && (
         <div>
-          {creators.map((creator, i) => (
+          {filteredCreators().map((creator, i) => (
             <ContentCard
               key={`creator-key${i}`}
               creator={creator}
@@ -104,7 +177,7 @@ function ContentCreators (props) {
         </div>
       )}
 
-      {loaded && creators.length === 0 && (
+      {loaded && filteredCreators().length === 0 && (
         <div className='text-center text-muted py-5 bg-light rounded-4 shadow-sm'>
           <i className='bi bi-people-fill fs-1 mb-3 d-block opacity-50' />
           <div>No content creators found</div>
