@@ -15,7 +15,9 @@ function useAppState () {
     defaultValue: {
       serverUrl: 'https://free-bch.fullstack.cash', // Default server
       dexServerUrl: config.dexServer // Default dex server url
-    }
+    },
+    nftData: {},
+    lastFeedTab: 'feed'
   })
 
   console.log('lsState: ', lsState)
@@ -29,6 +31,7 @@ function useAppState () {
   const [dexServerUrl, setDexServerUrl] = useState(lsState.dexServerUrl) // selected dex server url
   const [dexLib, setDexLib] = useState(false)
   const [nostr, setNostr] = useState(false)
+  const [lastFeedTab, setLastFeedTab] = useState(lsState.lastFeedTab || 'feed')
 
   // Startup state management
   const [asyncInitStarted, setAsyncInitStarted] = useState(false)
@@ -60,7 +63,7 @@ function useAppState () {
   const removeLocalStorageItem = removeItem
 
   const updateLocalStorage = (lsObj) => {
-    // console.log(`updateLocalStorage() input: ${JSON.stringify(lsObj, null, 2)}`)
+    console.log(`updateLocalStorage() input: ${JSON.stringify(lsObj, null, 2)}`)
 
     // Progressively overwrite the LocalStorage state.
     const newObj = Object.assign({}, lsState, lsObj)
@@ -184,7 +187,9 @@ function useAppState () {
     isLoggedIn,
     nftForSaleCacheData,
     setNftForSaleCacheData,
-    updateNFTCachedData
+    updateNFTCachedData,
+    lastFeedTab,
+    setLastFeedTab
   }
 }
 

@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react'
 import { Container, Button } from 'react-bootstrap'
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUser } from '@fortawesome/free-solid-svg-icons'
+import { faUser, faGlobe } from '@fortawesome/free-solid-svg-icons'
 import NostrFormat from '../nostr-format'
 import { RelayPool } from 'nostr'
 import * as nip19 from 'nostr-tools/nip19'
@@ -18,6 +18,7 @@ function ProfileRead (props) {
   const { setProfile } = props
   const [post, setPost] = useState({})
   const [loaded, setLoaded] = useState(false)
+  const [imageError, setImageError] = useState({ picture: false, banner: false })
 
   useEffect(() => {
     const start = () => {
@@ -39,10 +40,14 @@ function ProfileRead (props) {
 
       pool.on('event', (relay, subId, ev) => {
         console.log('Received event:', ev)
-        const profile = JSON.parse(ev.content)
-        console.log('Profile:', profile)
-        setPost(profile)
-        setProfile(profile)
+        try {
+          const profile = JSON.parse(ev.content)
+          console.log('Profile:', profile)
+          setPost(profile)
+          setProfile(profile)
+        } catch (error) {
+          console.error('Error parsing profile:', error)
+        }
       })
 
       setLoaded(true)
@@ -53,23 +58,62 @@ function ProfileRead (props) {
     }
   }, [bchWalletState, loaded, setProfile, npub])
 
+  const handleImageError = (type) => {
+    setImageError(prev => ({ ...prev, [type]: true }))
+  }
+
+  const handleImageLoad = (type) => {
+    setImageError(prev => ({ ...prev, [type]: false }))
+  }
+
   return (
     <Container>
-      <div className='d-flex flex-column flex-md-row align-items-center gap-4 mb-5 p-3 p-md-5 bg-light rounded-4 shadow-sm'>
-        <div style={{ width: '100px', height: '100px' }} className='mb-3 mb-md-0'>
-          <div
-            className='rounded-circle bg-gradient shadow d-flex align-items-center justify-content-center'
-            style={{
-              width: '100%',
-              height: '100%',
-              background: 'linear-gradient(45deg, #6c757d, #495057)'
-            }}
-          >
-            <FontAwesomeIcon icon={faUser} size='3x' color='#7c7c7d' />
-          </div>
+      {/* Banner Section */}
+      {post.banner && !imageError.banner && (
+        <div className='position-relative'>
+          <img
+            src={post.banner}
+            alt='Profile banner'
+            className='w-100 rounded-4 shadow-sm'
+            style={{ height: '200px', objectFit: 'cover' }}
+            onError={() => handleImageError('banner')}
+            onLoad={() => handleImageLoad('banner')}
+          />
         </div>
+      )}
+
+      <div className='d-flex flex-column flex-md-row align-items-center gap-4 mb-5 p-3 p-md-5 bg-light rounded-4 shadow-sm'>
+        {/* Profile Picture */}
+        <div style={{ width: '120px', height: '120px' }} className='mb-3 mb-md-0'>
+          {post.picture && !imageError.picture
+            ? (
+              <img
+                src={post.picture}
+                alt='Profile picture'
+                className='rounded-circle shadow w-100 h-100'
+                style={{ objectFit: 'cover' }}
+                onError={() => handleImageError('picture')}
+                onLoad={() => handleImageLoad('picture')}
+              />
+              )
+            : (
+              <div
+                className='rounded-circle bg-gradient shadow d-flex align-items-center justify-content-center'
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(45deg, #6c757d, #495057)'
+                }}
+              >
+                <FontAwesomeIcon icon={faUser} size='3x' color='#7c7c7d' />
+              </div>
+              )}
+        </div>
+
+        {/* Profile Information */}
         <div className='flex-grow-1 text-center text-md-start mb-3 mb-md-0 d-flex flex-column align-items-center align-items-md-start'>
-          <h3 className='mb-2 fw-bold'>{post.name}</h3>
+          <h3 className='mb-2 fw-bold'>{post.name || 'username'}</h3>
+
           <div className='text-muted small mb-3 d-flex align-items-center flex-column flex-md-row'>
             <span className='text-truncate me-2 mb-2 mb-md-0'>
               <span className='d-md-none'>
@@ -81,10 +125,32 @@ function ProfileRead (props) {
             </span>
             <CopyOnClick walletProp='npub' appData={props.appData} value={bchWalletState.nostrKeyPair.npub} />
           </div>
-          <div className='fs-6 text-secondary'>
-            <NostrFormat content={post.about} />
-          </div>
+
+          {/* About Section */}
+          {post.about && (
+            <div className='fs-6 text-secondary'>
+              <NostrFormat content={post.about} />
+            </div>
+          )}
+
+          {/* Website Link */}
+          {post.website && (
+            <div className='mb-3 d-flex align-items-center gap-2'>
+              <FontAwesomeIcon icon={faGlobe} className='text-muted' size='sm' />
+              <a
+                href={post.website.startsWith('http') ? post.website : `https://${post.website}`}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-decoration-none text-muted small'
+                style={{ wordBreak: 'break-all' }}
+              >
+                {post.website}
+              </a>
+            </div>
+          )}
         </div>
+
+        {/* Action Buttons */}
         <div className='d-flex gap-2 align-items-center flex-wrap justify-content-center'>
           <Button
             variant='outline-danger'

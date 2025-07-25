@@ -27,7 +27,7 @@ import Login from './account-creation/login'
 import ConfigurationView from './configuration/index'
 import NostrPost from './nostr/nostr-post/index.js'
 import Profile from './nostr/profile/index.js'
-import GlobalFeed from './nostr/global-feed/index.js'
+import Feeds from './nostr/feeds/index.js'
 import ContentCreators from './nostr/content-creators/index.js'
 import UserDataReview from './user-data-review'
 import Offers from './offers'
@@ -53,7 +53,7 @@ function AppBody (props) {
         <Route path='/login' element={<Login appData={appData} />} />
         <Route path='/nostr-post' element={<NostrPost appData={appData} />} />
         <Route path='/profile/:npub' element={<Profile appData={appData} />} />
-        <Route path='/global-feed' element={<GlobalFeed appData={appData} />} />
+        <Route path='/feeds' element={<Feeds appData={appData} />} />
         <Route path='/content-creators' element={<ContentCreators appData={appData} />} />
         <Route path='/user-data/:tokenId' element={<UserDataReview appData={appData} />} />
         <Route path='/offers' element={<Offers appData={appData} />} />

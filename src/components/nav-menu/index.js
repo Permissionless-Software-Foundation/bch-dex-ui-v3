@@ -68,10 +68,10 @@ function NavMenu (props) {
 
                 <NavLink
                   className={currentPath === '/global-feed' ? 'nav-link-active' : 'nav-link-inactive'}
-                  to='/global-feed'
+                  to='/feeds'
                   onClick={handleClickEvent}
                 >
-                  Global Feed
+                  Feeds
                 </NavLink>
                 <NavLink
                   className={currentPath === '/nostr-post' ? 'nav-link-active' : 'nav-link-inactive'}

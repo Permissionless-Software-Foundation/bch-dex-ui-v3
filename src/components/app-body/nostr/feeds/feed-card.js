@@ -1,5 +1,5 @@
 /**
- * Component for reading global nostr posts
+ * Component for displaying nostr posts
  */
 // Global npm libraries
 import React, { useCallback, useEffect, useState } from 'react'
@@ -61,7 +61,7 @@ function FeedCard (props) {
               {!profile?.name && (
                 <span>
                   {post.pubkey.slice(0, 8) + '...'}
-                  <Spinner animation='border' size='sm' className='ms-2' />
+                  {!profile?.loaded && <Spinner animation='border' size='sm' className='ms-2' />}
                 </span>
               )}
             </div>

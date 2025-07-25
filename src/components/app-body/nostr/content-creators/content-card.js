@@ -7,43 +7,14 @@ import { Card } from 'react-bootstrap'
 import Jdenticon from '@chris.troutner/react-jdenticon'
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
 import FollowBtn from './follow-btn.js'
-import { RelayPool } from 'nostr'
 
 function ContentCard (props) {
-  const [profile, setProfile] = useState([])
-  const [loaded, setLoaded] = useState(false)
   const { creator, followList, refreshFollowList } = props
+  const [profile, setProfile] = useState(null)
 
   useEffect(() => {
-    const loadProfile = async () => {
-      const psf = 'wss://nostr-relay.psfoundation.info'
-
-      const pool = RelayPool([psf])
-      pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 5, kinds: [0], authors: [creator.pubkey] })
-      })
-
-      pool.on('eose', relay => {
-        console.log('Closing Relay')
-        relay.close()
-      })
-
-      pool.on('event', (relay, subId, ev) => {
-        try {
-          const profile = JSON.parse(ev.content)
-          console.log('profile', profile)
-          setProfile(profile)
-        } catch (error) {
-          console.log('Error parsing profile', error)
-        }
-      })
-      setLoaded(true)
-    }
-
-    if (!loaded && creator.npub) {
-      loadProfile()
-    }
-  }, [loaded, creator])
+    setProfile(creator?.profile || {})
+  }, [creator.profile])
 
   const goToProfile = () => {
     const profileUrl = `${window.location.origin}/profile/${creator.npub}`
@@ -69,8 +40,8 @@ function ContentCard (props) {
 
             {/* Creator Info */}
             <div className='flex-grow-1'>
-              <h5 className='mb-2 fw-bold cursor-pointer' onClick={goToProfile}>{profile.name}</h5>
-              <p className='text-muted medium mb-3'>{profile.about}</p>
+              <h5 className='mb-2 fw-bold cursor-pointer' onClick={goToProfile}>{profile?.name}</h5>
+              <p className='text-muted medium mb-3'>{profile?.about}</p>
 
               {/* Nostr Public Key */}
               <div className='mb-2'>
@@ -126,7 +97,16 @@ function ContentCard (props) {
                 Message
               </button>
 
-              <small>Followers: {creator.followerCnt}</small>
+              <div className='d-flex align-items-center justify-content-center gap-2 mt-2'>
+                <span
+                  className='badge rounded-pill bg-white border text-dark px-3 py-2 shadow-sm d-flex align-items-center gap-2'
+                  style={{ fontSize: '1rem', fontWeight: 600, cursor: 'auto' }}
+                >
+                  <i className='bi bi-people-fill text-primary' style={{ fontSize: '1.2rem' }} />
+                  <span style={{ fontWeight: 700 }}>{creator.followerCnt}</span>
+                  <span className='text-muted' style={{ fontWeight: 400, fontSize: '0.9rem' }}>Followers</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -139,8 +119,8 @@ function ContentCard (props) {
 
             {/* Creator Info */}
             <div className='w-100 mb-3'>
-              <h5 className='mb-2 fw-bold' onClick={goToProfile}>{profile.name}</h5>
-              <p className='text-muted small mb-3'>{profile.about}</p>
+              <h5 className='mb-2 fw-bold' onClick={goToProfile}>{profile?.name}</h5>
+              <p className='text-muted small mb-3'>{profile?.about}</p>
 
               {/* Nostr Public Key */}
               <div className='mb-3'>
@@ -193,6 +173,13 @@ function ContentCard (props) {
                 <i className='bi bi-chat-dots me-1' />
                 Message
               </button>
+            </div>
+            <div className='d-flex align-items-center justify-content-center gap-2 mt-2'>
+              <span className='badge rounded-pill bg-white border text-dark px-3 py-2 shadow-sm d-flex align-items-center gap-2' style={{ fontSize: '1rem', fontWeight: 600 }}>
+                <i className='bi bi-people-fill text-primary' style={{ fontSize: '1.2rem' }} />
+                <span style={{ fontWeight: 700 }}>{creator.followerCnt}</span>
+                <span className='text-muted' style={{ fontWeight: 400, fontSize: '0.9rem' }}>Followers</span>
+              </span>
             </div>
           </div>
         </Card.Body>
