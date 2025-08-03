@@ -12,7 +12,7 @@ import InfoButton from './info-button'
 import BuyButton from './buy-button'
 
 function TokenCard (props) {
-  const { token, appData, handleRefresh } = props
+  const { token, appData, handleRefresh, hideBuyBtn } = props
   const [icon, setIcon] = useState(token.icon)
   const [tokenData, setTokenData] = useState(token.tokenData)
 
@@ -64,16 +64,16 @@ function TokenCard (props) {
               </Row>
               <br />
 
-              <Row>
+              <Row className='text-center'>
                 <Col>
                   <InfoButton token={token} disabled={!token.tokenData} />
                 </Col>
 
-                <Col />
-
-                <Col>
-                  <BuyButton token={token} disabled={!token.tokenData} appData={appData} onSuccess={handleRefresh} />
-                </Col>
+                {!hideBuyBtn && (
+                  <Col>
+                    <BuyButton token={token} disabled={!token.tokenData} appData={appData} onSuccess={handleRefresh} />
+                  </Col>
+                )}
               </Row>
 
             </Container>
@@ -83,17 +83,5 @@ function TokenCard (props) {
     </>
   )
 }
-// eslint-disable-next-line
-{/* <Col>
-                  <InfoButton token={props.token} />
-                </Col>
-
-                <Col>
-                  <FlagButton appData={props.appData} offer={props.token} />
-                </Col>
-
-                <Col>
-                  <BuyNftButton appData={props.appData} offer={props.token} />
-                </Col> */ }
 
 export default TokenCard

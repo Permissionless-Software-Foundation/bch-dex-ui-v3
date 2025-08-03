@@ -13,11 +13,11 @@ import { Button, Modal, Container, Row, Col } from 'react-bootstrap'
 // returned with a link. Otherwise the original string is returned.
 function linkIfUrl (url) {
   // Convert the URL into a link if it contains 'http'
-  if (url.includes('http')) {
+  if (url?.includes('http')) {
     url = (<a href={url} target='_blank' rel='noreferrer'>{url}</a>)
 
     //
-  } else if (url.includes('ipfs://')) {
+  } else if (url?.includes('ipfs://')) {
     // Convert to a Filecoin link if its an IPFS reference.
 
     const cid = url.substring(7)

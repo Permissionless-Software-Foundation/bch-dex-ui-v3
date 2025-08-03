@@ -1,42 +1,29 @@
-/*
-  Shows NFTs for sale on the DEX.
-
-   workflow:
-   1. Load offers
-   2. Display token cards with current Offer data
-   3. Load tokens data
-   4. Add data to offers and update card with new data
-   5. Load tokens icons
-   6. Add icons to offers and update card with new icons
-*/
-
-// Global npm libraries
+/**
+ * Component for displaying SLP tokens in a grid layout
+ */
 import React, { useState, useEffect, useCallback } from 'react'
-import { Container, Row, Col, Button, Spinner } from 'react-bootstrap'
+import { Container, Row, Col, Spinner } from 'react-bootstrap'
+import config from '../../../../config'
 import axios from 'axios'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faRedo } from '@fortawesome/free-solid-svg-icons'
+import TokenCard from '../../nfts-for-sale/token-card'
 
-// Local libraries
-import config from '../../../config'
-import TokenCard from './token-card'
-
-// Global variables and constants
-const SERVER = config.dexServer
-
-function NftsForSale (props) {
-  // Dependency injection through props
-  const appData = props.appData
+function NFTForSale (props) {
+  const { appData, npub } = props
 
   const [offers, setOffers] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
   const [offersAreLoaded, setOffersAreLoaded] = useState(false)
   const [iconsAreLoaded, setIconsAreLoaded] = useState(false)
   const [dataAreLoaded, setDataAreLoaded] = useState(false)
 
+  const getAddressByNpub = useCallback(async () => {
+    const url = `${config.dexServer}/sm/npub/${npub}`
+    const response = await axios.get(url)
+    const addr = response.data.bchAddr
+    return addr
+  }, [npub])
+
   // Handler for refresh button
   const handleRefresh = () => {
-    console.log('handling refresh')
     loadNftOffers()
   }
 
@@ -63,8 +50,9 @@ function NftsForSale (props) {
   const getNftOffers = useCallback(async (page = 0) => {
     try {
       setOffersAreLoaded(false)
-
-      const result = await axios.get(`${SERVER}/offer/list/nft/${page}`)
+      const addr = await getAddressByNpub(npub)
+      const url = `${config.dexServer}/offer/list/addr/${addr}`
+      const result = await axios.get(url)
       const rawOffers = result.data
       console.log('rawOffers: ', rawOffers)
 
@@ -84,7 +72,7 @@ function NftsForSale (props) {
       setOffersAreLoaded(true)
       throw err
     }
-  }, [processTokenData])
+  }, [processTokenData, getAddressByNpub, npub])
 
   //  This function loads the token data .
   const lazyLoadTokenData = useCallback(async (tokens) => {
@@ -209,7 +197,6 @@ function NftsForSale (props) {
   // Main function to load NFT offers
   const loadNftOffers = useCallback(async () => {
     try {
-      setIsLoading(true)
       // Get tokens in offers
       const offers = await getNftOffers()
       console.log('offers: ', offers)
@@ -224,9 +211,7 @@ function NftsForSale (props) {
 
       //  Update cached data with the latest retrieved data
       await updateNFTCachedData(offers)
-      setIsLoading(false)
     } catch (err) {
-      setIsLoading(false)
       console.error('Error loading NFT offers:', err)
     }
   }, [lazyLoadTokenData, lazyLoadMutableData, getNftOffers, reviewNftCachedData, updateNFTCachedData])
@@ -264,6 +249,8 @@ function NftsForSale (props) {
           token={thisToken}
           handleRefresh={handleRefresh}
           key={`${thisToken.tokenId + i}`}
+          hideBuyBtn
+          hideSendBtn
         />
       )
       tokenCards.push(thisTokenCard)
@@ -274,60 +261,61 @@ function NftsForSale (props) {
 
   return (
     <Container>
-      <Row>
-        <Col>
-          <h1>NFTs for Sale</h1>
-        </Col>
-      </Row>
-      <Row>
-        <Col xs={12} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          {/** Show spinner info if tokens are loaded but data is not loaded */
-            offersAreLoaded && !dataAreLoaded && (
-              <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
-                <span style={{ marginRight: '10px' }}>Loading Token Data </span>
-                <Spinner animation='border' />
-              </div>
-            )
-          }
-          {/** Show spinner info if tokens are loaded but icons are not loaded */
-            dataAreLoaded && !iconsAreLoaded && (
-              <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
-                <span style={{ marginRight: '10px' }}>Loading Token Icons </span>
-                <Spinner animation='border' />
-              </div>
-            )
-          }
-
-        </Col>
-      </Row>
-
-      {!isLoading && (
-        <Row>
-          <Col xs={6}>
-            <Button variant='success' onClick={handleRefresh}>
-              <FontAwesomeIcon icon={faRedo} size='lg' /> Refresh
-            </Button>
-          </Col>
-        </Row>
-      )}
-
       {!offersAreLoaded && (
-        <Row className='d-block text-center'>
-          <Spinner animation='border' variant='primary' style={{ maegin: '0 auto' }} />
-        </Row>
+        <div className='d-flex justify-content-center align-items-center h-100 mb-4'>
+          <Spinner />
+        </div>
       )}
-      <Row>
-        {offersAreLoaded && generateCards(offers)}
-      </Row>
+      {offersAreLoaded && offers.length !== 0 && (
+        <div className='bg-white rounded-1 shadow-sm border mb-4'>
+          <div className='p-3 border-bottom bg-light rounded-top-4'>
+            <h5 className='mb-0 fw-bold text-dark'>Tokens For Sale</h5>
+          </div>
+          <div
+            className='p-3'
+            style={{
+              height: '800px',
+              overflowY: 'auto',
+              maxHeight: '800px'
+            }}
+          >
 
-      {/** Display a message if no tokens are found */}
-      {offersAreLoaded && offers.length === 0 && (
-        <Row className='text-center'>
-          <span> No Offers found. </span>
-        </Row>
+            <Row>
+              <Col xs={12} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {/** Show spinner info if tokens are loaded but data is not loaded */
+                  offersAreLoaded && !dataAreLoaded && (
+                    <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
+                      <span style={{ marginRight: '10px' }}>Loading Token Data </span>
+                      <Spinner animation='border' />
+                    </div>
+                  )
+                }
+                {/** Show spinner info if tokens are loaded but icons are not loaded */
+                  dataAreLoaded && !iconsAreLoaded && (
+                    <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
+                      <span style={{ marginRight: '10px' }}>Loading Token Icons </span>
+                      <Spinner animation='border' />
+                    </div>
+                  )
+                }
+
+              </Col>
+            </Row>
+
+            {!offersAreLoaded && (
+              <Row className='d-block text-center'>
+                <Spinner animation='border' variant='primary' style={{ maegin: '0 auto' }} />
+              </Row>
+            )}
+            <Row>
+              {offersAreLoaded && generateCards(offers)}
+            </Row>
+
+          </div>
+        </div>
       )}
     </Container>
   )
 }
 
-export default NftsForSale
+export default NFTForSale

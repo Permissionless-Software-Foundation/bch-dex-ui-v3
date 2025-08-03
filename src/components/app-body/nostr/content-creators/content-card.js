@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Card } from 'react-bootstrap'
+import { Card, Spinner } from 'react-bootstrap'
 import Jdenticon from '@chris.troutner/react-jdenticon'
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
 import FollowBtn from './follow-btn.js'
@@ -11,14 +11,19 @@ import FollowBtn from './follow-btn.js'
 function ContentCard (props) {
   const { creator, followList, refreshFollowList } = props
   const [profile, setProfile] = useState(null)
+  const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
-    setProfile(creator?.profile || {})
+    setProfile(creator?.profile)
   }, [creator.profile])
 
   const goToProfile = () => {
-    const profileUrl = `${window.location.origin}/profile/${creator.npub}`
+    const profileUrl = `${window.location.origin}/profile/${creator.npub}#single-view`
     window.open(profileUrl, '_blank')
+  }
+
+  const handleImageError = (type) => {
+    setImageError(true)
   }
 
   return (
@@ -34,9 +39,33 @@ function ContentCard (props) {
           </div>
           <div className='d-none d-md-flex align-items-center gap-4 cursor-pointer'>
             {/* Profile Picture */}
-            <div className='flex-shrink-0' onClick={goToProfile}>
-              <Jdenticon size='140' value={creator.npub} />
-            </div>
+            {(profile && profile.picture && !imageError) && (
+              <div className='flex-shrink-0 max-w-50' onClick={goToProfile}>
+                <img
+                  src={profile.picture}
+                  alt='Profile'
+                  className='rounded-circle shadow'
+                  style={{ objectFit: 'cover', width: '140px' }}
+                  onError={() => handleImageError('picture')}
+                />
+              </div>
+
+            )}
+            {/* Default profile Picture */}
+            {((profile && !profile.picture) || imageError) && (
+              <div className='flex-shrink-0' onClick={goToProfile}>
+                <Jdenticon size='140' value={creator.npub} />
+              </div>
+            )}
+            {/** */}
+            {!profile && (
+              <div
+                className='flex-shrink-0'
+                style={{ width: '140px', height: '140px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Spinner size='140' />
+              </div>
+            )}
 
             {/* Creator Info */}
             <div className='flex-grow-1'>
@@ -113,9 +142,33 @@ function ContentCard (props) {
           {/* Mobile Layout - Vertical */}
           <div className='d-flex d-md-none flex-column align-items-center text-center'>
             {/* Profile Picture */}
-            <div className='mb-3'>
-              <Jdenticon size='100' value={creator.npub} onClick={goToProfile} />
-            </div>
+            {(profile && profile.picture && !imageError) && (
+              <div className='flex-shrink-0 max-w-50 mb-2' onClick={goToProfile}>
+                <img
+                  src={profile.picture}
+                  alt='Profile'
+                  className='rounded-circle shadow'
+                  style={{ objectFit: 'cover', width: '100px' }}
+                  onError={() => handleImageError('picture')}
+                />
+              </div>
+
+            )}
+            {/* Default profile Picture */}
+            {((profile && !profile.picture) || imageError) && (
+              <div className='flex-shrink-0 mb-2' onClick={goToProfile}>
+                <Jdenticon size='100' value={creator.npub} />
+              </div>
+            )}
+            {/** */}
+            {!profile && (
+              <div
+                className='flex-shrink-0'
+                style={{ width: '100px', height: '100px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Spinner size='100' />
+              </div>
+            )}
 
             {/* Creator Info */}
             <div className='w-100 mb-3'>

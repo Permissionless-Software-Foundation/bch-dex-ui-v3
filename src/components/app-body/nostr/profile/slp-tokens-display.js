@@ -91,7 +91,7 @@ function SlpTokensDisplay (props) {
     const getTokens = async () => {
       try {
         const { nostrKeyPair } = bchWalletState
-        if (nostrKeyPair.npub === npub) {
+        if (nostrKeyPair?.npub === npub) {
           setTokens(bchWalletState.slpTokens)
           setLoaded(true)
           return

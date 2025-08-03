@@ -81,7 +81,7 @@ function PublicRead (props) {
                   <div className='flex-grow-1'>
                     <div className='fw-bold mb-1'>{props.profile?.name}</div>
                     <small className='text-muted'>
-                      {`${bchWalletState.nostrKeyPair.npub.slice(0, 8)}...${bchWalletState.nostrKeyPair.npub.slice(-5)}`}
+                      {`${npub.slice(0, 8)}...${npub.slice(-5)}`}
                     </small>
                   </div>
                   <small className='text-muted'>

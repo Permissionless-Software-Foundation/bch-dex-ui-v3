@@ -13,8 +13,6 @@ import * as nip19 from 'nostr-tools/nip19'
 
 function ProfileRead (props) {
   const { npub } = props
-  const { bchWalletState } = props.appData
-  console.log('npub prop', npub)
   const { setProfile } = props
   const [post, setPost] = useState({})
   const [loaded, setLoaded] = useState(false)
@@ -24,7 +22,6 @@ function ProfileRead (props) {
     const start = () => {
       const pubHexData = nip19.decode(npub)
       const pubHex = pubHexData.data
-      console.log('pubhex', pubHex)
       const psf = 'wss://nostr-relay.psfoundation.info'
 
       const pool = RelayPool([psf])
@@ -56,7 +53,7 @@ function ProfileRead (props) {
     if (!loaded && npub) {
       start()
     }
-  }, [bchWalletState, loaded, setProfile, npub])
+  }, [loaded, setProfile, npub])
 
   const handleImageError = (type) => {
     setImageError(prev => ({ ...prev, [type]: true }))
@@ -89,7 +86,7 @@ function ProfileRead (props) {
             ? (
               <img
                 src={post.picture}
-                alt='Profile picture'
+                alt='Profile'
                 className='rounded-circle shadow w-100 h-100'
                 style={{ objectFit: 'cover' }}
                 onError={() => handleImageError('picture')}
@@ -117,13 +114,13 @@ function ProfileRead (props) {
           <div className='text-muted small mb-3 d-flex align-items-center flex-column flex-md-row'>
             <span className='text-truncate me-2 mb-2 mb-md-0'>
               <span className='d-md-none'>
-                {`${bchWalletState.nostrKeyPair.npub.slice(0, 8)}...${bchWalletState.nostrKeyPair.npub.slice(-5)}`}
+                {`${npub?.slice(0, 8)}...${npub?.slice(-5)}`}
               </span>
               <span className='d-none d-md-inline'>
-                {bchWalletState.nostrKeyPair.npub}
+                {npub}
               </span>
             </span>
-            <CopyOnClick walletProp='npub' appData={props.appData} value={bchWalletState.nostrKeyPair.npub} />
+            <CopyOnClick walletProp='npub' appData={props.appData} value={npub} />
           </div>
 
           {/* About Section */}

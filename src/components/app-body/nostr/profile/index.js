@@ -9,7 +9,7 @@ import ProfileRead from './profile-read.js'
 import PublicRead from './public-read.js'
 import { useParams } from 'react-router-dom'
 import SlpTokensDisplay from './slp-tokens-display'
-
+import NFTForSale from './nft-for-sale.js'
 function Profile (props) {
   const [profile, setProfile] = useState(false)
   const { npub } = useParams()
@@ -20,6 +20,7 @@ function Profile (props) {
         <ProfileRead {...props} setProfile={setProfile} npub={npub} />
         <PublicRead {...props} profile={profile} npub={npub} />
         <SlpTokensDisplay {...props} npub={npub} />
+        <NFTForSale {...props} npub={npub} />
       </Container>
     </>
   )

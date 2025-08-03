@@ -46,6 +46,7 @@ function useAppState () {
   const [hideSpinner, setHideSpinner] = useState(false)
   const [denyClose, setDenyClose] = useState(false)
   const [userData, setUserData] = useState(lsState.userData)
+  const [isSingleView, setIsSingleView] = useState(false)
 
   // NFTs for sale stored data to improve performance
   const [nftForSaleCacheData, setNftForSaleCacheData] = useState(lsState.nftData || {})
@@ -189,7 +190,9 @@ function useAppState () {
     setNftForSaleCacheData,
     updateNFTCachedData,
     lastFeedTab,
-    setLastFeedTab
+    setLastFeedTab,
+    isSingleView,
+    setIsSingleView
   }
 }
 
