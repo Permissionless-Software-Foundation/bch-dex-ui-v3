@@ -1,5 +1,5 @@
 /*
-Component for posting nostr information on kind 1.
+  Component for posting nostr information on kind 1.
 */
 
 // Global npm libraries
@@ -10,8 +10,11 @@ import { finalizeEvent } from 'nostr-tools/pure'
 import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
 
+// Local libraries
+import config from '../../../../config'
+
 function PublicPost (props) {
-  const [accordionKey, setAccordionKey] = useState(null)
+  const [accordionKey, setAccordionKey] = useState('0')
   const [onFetch, setOnFetch] = useState(false)
   const { bchWalletState } = props.appData
   const [formData, setFormData] = useState({
@@ -44,9 +47,6 @@ function PublicPost (props) {
       // Convert private key to binary
       const privateKeyBin = hexToBytes(nostrKeyPair.privHex)
 
-      // Relay list
-      const psf = 'wss://nostr-relay.psfoundation.info'
-
       // BCH address of the user.
       const bchAddr = bchWalletState.address
 
@@ -63,16 +63,24 @@ function PublicPost (props) {
       const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
       console.log('signedEvent: ', signedEvent)
 
-      // Connect to a relay.
-      const relay = await Relay.connect(psf)
-      console.log(`connected to ${relay.url}`)
+      // Publish the post to each relay.
+      config.nostrRelays.map(async (relayUrl) => {
+        try {
+          // Connect to a relay.
+          const relay = await Relay.connect(relayUrl)
+          console.log(`connected to ${relay.url}`)
 
-      // Publish the message to the relay.
-      const result = await relay.publish(signedEvent)
-      console.log('result: ', result)
+          // Publish the message to the relay.
+          const result = await relay.publish(signedEvent)
+          console.log('result: ', result)
 
-      // Close the connection to the relay.
-      relay.close()
+          // Close the connection to the relay.
+          relay.close()
+        } catch (err) {
+          console.warn(`Skipping publishing to ${relayUrl} due to error: ${err}`)
+        }
+      })
+
       resetForm()
       setSuccessMsg('Post successfully published!')
       setOnFetch(false)

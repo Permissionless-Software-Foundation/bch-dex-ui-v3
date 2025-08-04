@@ -4,9 +4,10 @@
 // Global npm libraries
 import React, { useEffect, useState } from 'react'
 import { Container, Spinner } from 'react-bootstrap'
-
 import { RelayPool } from 'nostr'
 
+// Local libraries
+import config from '../../../../config'
 import FeedCard from './feed-card'
 
 function Following (props) {
@@ -19,9 +20,8 @@ function Following (props) {
       const followingList = await new Promise((resolve, reject) => {
         let list = []
         const { nostrKeyPair } = appData.bchWalletState
-        const psf = 'wss://nostr-relay.psfoundation.info'
 
-        const pool = RelayPool([psf])
+        const pool = RelayPool(config.nostrRelays)
         pool.on('open', relay => {
           relay.subscribe('subid', { limit: 1, kinds: [3], authors: [nostrKeyPair.pubHex] })
         })

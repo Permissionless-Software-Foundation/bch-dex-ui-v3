@@ -98,17 +98,16 @@ function InfoButton (props) {
             </Row>
 
             {mutableDataCid && (
-              <Row>
+              <Row style={{ paddingTop: '10px' }}>
                 <Col xs={4}><b>User Data</b>:</Col>
                 <Col xs={8}>
-                  <a
+                  <Button
                     href={`/user-data/${props.token.tokenId}#single-view`}
                     target='_blank'
                     rel='noopener noreferrer'
-                    className='btn btn-link p-0'
                   >
                     View User Data
-                  </a>
+                  </Button>
                 </Col>
               </Row>
             )}

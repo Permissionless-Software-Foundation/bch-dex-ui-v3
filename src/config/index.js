@@ -18,7 +18,12 @@ const config = {
   // dexServer: 'http://localhost:5700',
 
   nostrTopic: 'bch-dex-test-topic-02',
-  nostrRelay: 'wss://nostr-relay.psfoundation.info'
+  nostrRelay: 'wss://nostr-relay.psfoundation.info',
+  nostrRelays: [
+    'wss://nostr-relay.psfoundation.info',
+    'wss://nos.lol',
+    'wss://relay.damus.io'
+  ]
 
 }
 

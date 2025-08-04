@@ -7,9 +7,12 @@ import { Container, Button } from 'react-bootstrap'
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import * as nip19 from 'nostr-tools/nip19'
+
+// Local libraries
+import config from '../../../../config'
 import NostrFormat from '../nostr-format'
 import { RelayPool } from 'nostr'
-import * as nip19 from 'nostr-tools/nip19'
 
 function ProfileRead (props) {
   const { npub } = props
@@ -22,9 +25,8 @@ function ProfileRead (props) {
     const start = () => {
       const pubHexData = nip19.decode(npub)
       const pubHex = pubHexData.data
-      const psf = 'wss://nostr-relay.psfoundation.info'
 
-      const pool = RelayPool([psf])
+      const pool = RelayPool(config.nostrRelays)
       pool.on('open', relay => {
         relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubHex] })
         setLoaded(true)

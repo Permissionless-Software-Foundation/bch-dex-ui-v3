@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Container, Spinner, Dropdown } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFilter } from '@fortawesome/free-solid-svg-icons'
-
 import axios from 'axios'
+
 // Local libraries
 import config from '../../../../config'
 import ContentCard from './content-card'
@@ -23,9 +23,8 @@ function ContentCreators (props) {
     const list = await new Promise((resolve, reject) => {
       let list = []
       const { nostrKeyPair } = appData.bchWalletState
-      const psf = 'wss://nostr-relay.psfoundation.info'
 
-      const pool = RelayPool([psf])
+      const pool = RelayPool(config.nostrRelays)
       pool.on('open', relay => {
         relay.subscribe('subid', { limit: 1, kinds: [3], authors: [nostrKeyPair.pubHex] })
       })
@@ -52,9 +51,7 @@ function ContentCreators (props) {
 
   const loadProfile = useCallback(async (pubKey) => {
     return new Promise((resolve) => {
-      const psf = 'wss://nostr-relay.psfoundation.info'
-
-      const pool = RelayPool([psf])
+      const pool = RelayPool(config.nostrRelays)
       pool.on('open', relay => {
         relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubKey] })
       })

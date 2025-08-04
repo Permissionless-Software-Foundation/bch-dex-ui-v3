@@ -1,10 +1,12 @@
 /*
-Component for posting nostr information.
+  Component for posting nostr information.
 */
 
 // Global npm libraries
 import React from 'react'
 import { Container } from 'react-bootstrap'
+
+// Local libraries
 import ProfilePost from './profile-post'
 import PublicPost from './public-post'
 

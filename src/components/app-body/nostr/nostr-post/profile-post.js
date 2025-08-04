@@ -11,6 +11,9 @@ import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
 import { RelayPool } from 'nostr'
 
+// Local libraries
+import config from '../../../../config'
+
 function ProfilePost (props) {
   const { bchWalletState } = props.appData
   const [accordionKey, setAccordionKey] = useState(null)
@@ -90,7 +93,7 @@ function ProfilePost (props) {
       const privateKeyBin = hexToBytes(nostrKeyPair.privHex)
 
       // Relay list
-      const psf = 'wss://nostr-relay.psfoundation.info'
+      // const psf = 'wss://nostr-relay.psfoundation.info'
 
       const formDataString = JSON.stringify(formData)
 
@@ -107,16 +110,24 @@ function ProfilePost (props) {
       const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
       console.log('signedEvent: ', signedEvent)
 
-      // Connect to a relay.
-      const relay = await Relay.connect(psf)
-      console.log(`connected to ${relay.url}`)
+      // Publish the post to each relay.
+      config.nostrRelays.map(async (relayUrl) => {
+        try {
+          // Connect to a relay.
+          const relay = await Relay.connect(relayUrl)
+          console.log(`connected to ${relay.url}`)
 
-      // Publish the message to the relay.
-      const result = await relay.publish(signedEvent)
-      console.log('result: ', result)
+          // Publish the message to the relay.
+          const result = await relay.publish(signedEvent)
+          console.log('result: ', result)
 
-      // Close the connection to the relay.
-      relay.close()
+          // Close the connection to the relay.
+          relay.close()
+        } catch (err) {
+          console.warn(`Skipping publishing to ${relayUrl} due to error: ${err}`)
+        }
+      })
+
       setSuccessMsg('Post successfully published!')
       setOnFetch(false)
     } catch (error) {

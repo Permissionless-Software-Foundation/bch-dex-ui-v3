@@ -6,9 +6,12 @@ import React, { useEffect, useState } from 'react'
 import { Container, Card, Spinner } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
-import NostrFormat from '../nostr-format'
 import { RelayPool } from 'nostr'
 import * as nip19 from 'nostr-tools/nip19'
+
+// Local libraries
+import config from '../../../../config'
+import NostrFormat from '../nostr-format'
 
 function PublicRead (props) {
   const { npub } = props
@@ -22,9 +25,8 @@ function PublicRead (props) {
       const pubHexData = nip19.decode(npub)
       const pubHex = pubHexData.data
       console.log('pubhex', pubHex)
-      const psf = 'wss://nostr-relay.psfoundation.info'
 
-      const pool = RelayPool([psf])
+      const pool = RelayPool(config.nostrRelays)
       pool.on('open', relay => {
         relay.subscribe('subid', { limit: 5, kinds: [1], authors: [pubHex] })
         setLoaded(true)
