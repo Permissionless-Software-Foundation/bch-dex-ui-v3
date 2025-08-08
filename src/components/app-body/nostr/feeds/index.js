@@ -1,5 +1,16 @@
 /*
   Component for reading the nostr feeds.
+
+  TODO:
+  - fetchProfile() should retrieve a profile from multiple relays. If the first relay returns a profile,
+    then that profile can be used and promise resolved. If the first relay returns no profile, the next
+    one should be tried until all relays are exhausted or one returns a profile.
+
+  - useEffect() retrieves the feeds. This should cycle through each relay and posts from each one.
+    Once each relays has been tried, the posts should remove duplicate entries. Finally posts should
+    be sorted by date.
+
+  - Clicking on a profile picture, name, or npub should open the profile for that user in a new tab.
 */
 
 // Global npm libraries
@@ -22,16 +33,23 @@ function Feeds (props) {
   const [profiles, setProfiles] = useState({})
 
   // function to fetch profile and set it to profiles state
-  const fetchProfile = useCallback((pubkey) => {
+  const fetchProfile = useCallback(async (pubkey) => {
     // no fetch profile again if it exist
+    let hasProfileRequest = false
     setProfiles(currentProfiles => {
       if (currentProfiles[pubkey]) {
+        hasProfileRequest = true
         return currentProfiles
+      } else {
+        const newProfiles = { ...currentProfiles }
+        newProfiles[pubkey] = { loaded: false }
+        return newProfiles
       }
-      return currentProfiles
     })
+    if (hasProfileRequest) return
 
-    const pool = RelayPool(config.nostrRelays)
+    // const pool = RelayPool(config.nostrRelays)
+    const pool = RelayPool([config.nostrRelay])
     pool.on('open', relay => {
       relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubkey] })
     })
@@ -49,6 +67,7 @@ function Feeds (props) {
           return currentProfiles
         })
       } catch (error) {
+        console.warn(error)
         // skip error
       }
     })
@@ -71,7 +90,8 @@ function Feeds (props) {
   // Get global feed posts
   useEffect(() => {
     const start = () => {
-      const pool = RelayPool(config.nostrRelays)
+      // const pool = RelayPool(config.nostrRelays)
+      const pool = RelayPool([config.nostrRelay])
       pool.on('open', relay => {
         relay.subscribe('REQ', { limit: 10, kinds: [1], '#t': ['slpdex-socialmedia'] })
       })

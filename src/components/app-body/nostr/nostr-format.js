@@ -26,7 +26,7 @@ const NostrFormat = ({ content }) => {
   }
 
   return (
-    <div dangerouslySetInnerHTML={{ __html: formatContent(content) }} />
+    <div style={{ overflow: 'auto' }} dangerouslySetInnerHTML={{ __html: formatContent(content) }} />
   )
 }
 

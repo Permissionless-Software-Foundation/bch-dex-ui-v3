@@ -1,3 +1,15 @@
+/*
+  This component is used to display the list of content creators.
+
+  TODO:
+  - getFollowList() should aggregate all the followers from all the relays.
+    Currently each relay overwrites the last one.
+
+  - loadProfile() should use multiple relays. It should exit after the first
+    successful retrieval of data from a relay. If the relay fails to give data,
+    it should move on to the next relay.
+*/
+
 import React, { useState, useEffect, useCallback } from 'react'
 import { Container, Spinner, Dropdown } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -25,6 +37,7 @@ function ContentCreators (props) {
       const { nostrKeyPair } = appData.bchWalletState
 
       const pool = RelayPool(config.nostrRelays)
+      // const pool = RelayPool([config.nostrRelay])
       pool.on('open', relay => {
         relay.subscribe('subid', { limit: 1, kinds: [3], authors: [nostrKeyPair.pubHex] })
       })
@@ -51,7 +64,8 @@ function ContentCreators (props) {
 
   const loadProfile = useCallback(async (pubKey) => {
     return new Promise((resolve) => {
-      const pool = RelayPool(config.nostrRelays)
+      // const pool = RelayPool(config.nostrRelays)
+      const pool = RelayPool([config.nostrRelay])
       pool.on('open', relay => {
         relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubKey] })
       })

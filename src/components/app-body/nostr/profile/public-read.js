@@ -18,6 +18,7 @@ function PublicRead (props) {
   const { bchWalletState } = props.appData
   const [posts, setPosts] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const [profilePictureError, setProfilePictureError] = useState(false)
 
   useEffect(() => {
     // Get Last post from a author
@@ -49,7 +50,13 @@ function PublicRead (props) {
     }
   }, [bchWalletState, loaded, npub])
 
-  console.log('public-read.js bchWalletState', bchWalletState)
+  const handleProfilePictureError = () => {
+    setProfilePictureError(true)
+  }
+
+  const handleProfilePictureLoad = () => {
+    setProfilePictureError(false)
+  }
 
   return (
     <Container className='mt-4 mb-5'>
@@ -78,7 +85,20 @@ function PublicRead (props) {
                       background: 'linear-gradient(45deg, #6c757d, #495057)'
                     }}
                   >
-                    <FontAwesomeIcon icon={faUser} size='1x' color='#7c7c7d' />
+                    {props.profile?.picture && !profilePictureError
+                      ? (
+                        <img
+                          src={props.profile.picture}
+                          alt='Profile'
+                          className='rounded-circle w-100 h-100'
+                          style={{ objectFit: 'cover' }}
+                          onError={handleProfilePictureError}
+                          onLoad={handleProfilePictureLoad}
+                        />
+                        )
+                      : (
+                        <FontAwesomeIcon icon={faUser} size='1x' color='#7c7c7d' />
+                        )}
                   </div>
                   <div className='flex-grow-1'>
                     <div className='fw-bold mb-1'>{props.profile?.name}</div>

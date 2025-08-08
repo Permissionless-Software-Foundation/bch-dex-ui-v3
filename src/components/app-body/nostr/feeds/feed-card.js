@@ -25,6 +25,7 @@ function FeedCard (props) {
   const [isLiked, setIsLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(null)
   const [likesFetched, setLikesFetched] = useState(false)
+  const [profilePictureError, setProfilePictureError] = useState(false)
 
   // function to fetch a post likes reaction
   const handleLikes = useCallback(async (post, userPubKey) => {
@@ -76,6 +77,15 @@ function FeedCard (props) {
       console.warn(error)
     }
   }, [])
+
+  const handleProfilePictureError = () => {
+    setProfilePictureError(true)
+  }
+
+  const handleProfilePictureLoad = () => {
+    setProfilePictureError(false)
+  }
+
   // Get npub from pubkey
   useEffect(() => {
     const npub = nip19.npubEncode(post.pubkey)
@@ -170,7 +180,20 @@ function FeedCard (props) {
               background: 'linear-gradient(45deg, #6c757d, #495057)'
             }}
           >
-            <FontAwesomeIcon icon={faUser} size='1x' color='#7c7c7d' />
+            {profile?.picture && !profilePictureError
+              ? (
+                <img
+                  src={profile.picture}
+                  alt='Profile'
+                  className='rounded-circle w-100 h-100'
+                  style={{ objectFit: 'cover' }}
+                  onError={handleProfilePictureError}
+                  onLoad={handleProfilePictureLoad}
+                />
+                )
+              : (
+                <FontAwesomeIcon icon={faUser} size='1x' color='#7c7c7d' />
+                )}
           </div>
           <div className='flex-grow-1'>
             <div className='fw-bold mb-1'>
