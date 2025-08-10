@@ -1,6 +1,11 @@
 /**
- * Component for read nostr information kind 0
+ * Component to read nostr information kind 0 (normal posts)
+ *
+ * TODO:
+ * - Currently feeds are retrieved from only one relay. It should retrieve Kind
+ *   0 posts from all relays. It should then remove any duplicate entries.
  */
+
 // Global npm libraries
 import React, { useEffect, useState } from 'react'
 import { Container, Button } from 'react-bootstrap'
@@ -26,7 +31,8 @@ function ProfileRead (props) {
       const pubHexData = nip19.decode(npub)
       const pubHex = pubHexData.data
 
-      const pool = RelayPool(config.nostrRelays)
+      // const pool = RelayPool(config.nostrRelays)
+      const pool = new RelayPool([config.nostrRelay])
       pool.on('open', relay => {
         relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubHex] })
         setLoaded(true)
