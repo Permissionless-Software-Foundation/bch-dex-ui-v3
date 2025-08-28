@@ -4,41 +4,21 @@
 // Global npm libraries
 import React, { useEffect, useState } from 'react'
 import { Container, Spinner } from 'react-bootstrap'
-import { RelayPool } from 'nostr'
 
 // Local libraries
-import config from '../../../../config'
 import FeedCard from './feed-card'
 
 function Following (props) {
   const { appData, posts, profiles } = props
+  const { nostrQueries } = appData
   const [followingPosts, setFollowingPosts] = useState([])
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const getFollowingPosts = async () => {
-      const followingList = await new Promise((resolve, reject) => {
-        let list = []
-        const { nostrKeyPair } = appData.bchWalletState
-
-        const pool = RelayPool(config.nostrRelays)
-        pool.on('open', relay => {
-          relay.subscribe('subid', { limit: 1, kinds: [3], authors: [nostrKeyPair.pubHex] })
-        })
-
-        pool.on('eose', relay => {
-          relay.close()
-          /** This ensures to return an empty array if no records are found!
-           *  Applies for new users that don't have a follow list
-          */
-          resolve(list)
-        })
-
-        pool.on('event', (relay, subId, ev) => {
-          list = ev.tags
-          resolve(list)
-        })
-      })
+      console.log('getFollowingPosts')
+      const { nostrKeyPair } = appData.bchWalletState
+      const followingList = await nostrQueries.getFollowList(nostrKeyPair.pubHex)
 
       // Filter posts by following list
       let filteredPosts = []
@@ -55,7 +35,7 @@ function Following (props) {
       setLoaded(true)
     }
     getFollowingPosts()
-  }, [appData, posts])
+  }, [appData, posts, nostrQueries])
 
   return (
     <Container className='mt-4 mb-5' style={{ marginBottom: '50px' }}>

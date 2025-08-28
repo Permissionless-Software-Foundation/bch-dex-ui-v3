@@ -9,13 +9,12 @@ import Accordion from 'react-bootstrap/Accordion'
 import { finalizeEvent } from 'nostr-tools/pure'
 import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
-import { RelayPool } from 'nostr'
 
 // Local libraries
-import config from '../../../../config'
 
 function ProfilePost (props) {
-  const { bchWalletState } = props.appData
+  const { appData } = props
+  const { bchWalletState, writeRelays } = appData
   const [accordionKey, setAccordionKey] = useState(null)
   const [onFetch, setOnFetch] = useState(false)
   const [formLoaded, setFormLoaded] = useState(false)
@@ -34,40 +33,19 @@ function ProfilePost (props) {
 
   useEffect(() => {
     // Get Last post from
-    const getLastPost = () => {
-      const { nostrKeyPair } = bchWalletState
-
-      const psf = 'wss://nostr-relay.psfoundation.info'
-
-      const pool = RelayPool([psf])
-      pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 1, kinds: [0], authors: [nostrKeyPair.pubHex] })
-        setFormLoaded(true)
-      })
-
-      pool.on('eose', relay => {
-        console.log('Closing Relay')
-        setFormLoaded(true)
-        relay.close()
-      })
-
-      pool.on('event', (relay, subId, ev) => {
-        console.log('Received event:', ev)
-        // setPosts(currentPosts => [...currentPosts, ev])
-        try {
-          const data = JSON.parse(ev.content)
-          console.log('data', data)
-          setFormData(data)
-        } catch (error) {
-
-        }
-      })
+    const getLastProfilePost = async () => {
+      const { nostrKeyPair } = appData.bchWalletState
+      const lastProfile = await appData.nostrQueries.getProfile(nostrKeyPair.pubHex)
+      if (lastProfile) {
+        setFormData(lastProfile)
+      }
+      setFormLoaded(true)
     }
 
     if (!formLoaded) {
-      getLastPost()
+      getLastProfilePost()
     }
-  }, [bchWalletState, formLoaded])
+  }, [appData, formLoaded])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -111,7 +89,7 @@ function ProfilePost (props) {
       console.log('signedEvent: ', signedEvent)
 
       // Publish the post to each relay.
-      config.nostrRelays.map(async (relayUrl) => {
+      writeRelays.map(async (relayUrl) => {
         try {
           // Connect to a relay.
           const relay = await Relay.connect(relayUrl)

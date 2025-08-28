@@ -1,9 +1,6 @@
 /**
  * Component to read nostr information kind 0 (normal posts)
  *
- * TODO:
- * - Currently feeds are retrieved from only one relay. It should retrieve Kind
- *   0 posts from all relays. It should then remove any duplicate entries.
  */
 
 // Global npm libraries
@@ -15,45 +12,25 @@ import { faUser, faGlobe } from '@fortawesome/free-solid-svg-icons'
 import * as nip19 from 'nostr-tools/nip19'
 
 // Local libraries
-import config from '../../../../config'
 import NostrFormat from '../nostr-format'
-import { RelayPool } from 'nostr'
 
 function ProfileRead (props) {
-  const { npub } = props
-  const { setProfile } = props
-  const [post, setPost] = useState({})
+  const { npub, appData } = props
+  const { onProfileRead } = props
+  const [profile, setProfile] = useState({})
   const [loaded, setLoaded] = useState(false)
   const [imageError, setImageError] = useState({ picture: false, banner: false })
 
   useEffect(() => {
-    const start = () => {
+    const start = async () => {
       const pubHexData = nip19.decode(npub)
       const pubHex = pubHexData.data
 
-      // const pool = RelayPool(config.nostrRelays)
-      const pool = new RelayPool([config.nostrRelay])
-      pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubHex] })
-        setLoaded(true)
-      })
-
-      pool.on('eose', relay => {
-        console.log('Closing Relay')
-        relay.close()
-      })
-
-      pool.on('event', (relay, subId, ev) => {
-        console.log('Received event:', ev)
-        try {
-          const profile = JSON.parse(ev.content)
-          console.log('Profile:', profile)
-          setPost(profile)
-          setProfile(profile)
-        } catch (error) {
-          console.error('Error parsing profile:', error)
-        }
-      })
+      const profile = await appData.nostrQueries.getProfile(pubHex)
+      if (profile) {
+        onProfileRead(profile)
+        setProfile(profile)
+      }
 
       setLoaded(true)
     }
@@ -61,7 +38,7 @@ function ProfileRead (props) {
     if (!loaded && npub) {
       start()
     }
-  }, [loaded, setProfile, npub])
+  }, [loaded, onProfileRead, npub, appData])
 
   const handleImageError = (type) => {
     setImageError(prev => ({ ...prev, [type]: true }))
@@ -74,10 +51,10 @@ function ProfileRead (props) {
   return (
     <Container>
       {/* Banner Section */}
-      {post.banner && !imageError.banner && (
+      {profile.banner && !imageError.banner && (
         <div className='position-relative'>
           <img
-            src={post.banner}
+            src={profile.banner}
             alt='Profile banner'
             className='w-100 rounded-4 shadow-sm'
             style={{ height: '200px', objectFit: 'cover' }}
@@ -90,10 +67,10 @@ function ProfileRead (props) {
       <div className='d-flex flex-column flex-md-row align-items-center gap-4 mb-5 p-3 p-md-5 bg-light rounded-4 shadow-sm'>
         {/* Profile Picture */}
         <div style={{ width: '120px', height: '120px' }} className='mb-3 mb-md-0'>
-          {post.picture && !imageError.picture
+          {profile.picture && !imageError.picture
             ? (
               <img
-                src={post.picture}
+                src={profile.picture}
                 alt='Profile'
                 className='rounded-circle shadow w-100 h-100'
                 style={{ objectFit: 'cover' }}
@@ -117,7 +94,7 @@ function ProfileRead (props) {
 
         {/* Profile Information */}
         <div className='flex-grow-1 text-center text-md-start mb-3 mb-md-0 d-flex flex-column align-items-center align-items-md-start'>
-          <h3 className='mb-2 fw-bold'>{post.name || 'username'}</h3>
+          <h3 className='mb-2 fw-bold'>{profile.name || 'username'}</h3>
 
           <div className='text-muted small mb-3 d-flex align-items-center flex-column flex-md-row'>
             <span className='text-truncate me-2 mb-2 mb-md-0'>
@@ -132,24 +109,24 @@ function ProfileRead (props) {
           </div>
 
           {/* About Section */}
-          {post.about && (
+          {profile.about && (
             <div className='fs-6 text-secondary'>
-              <NostrFormat content={post.about} />
+              <NostrFormat content={profile.about} />
             </div>
           )}
 
           {/* Website Link */}
-          {post.website && (
+          {profile.website && (
             <div className='mb-3 d-flex align-items-center gap-2'>
               <FontAwesomeIcon icon={faGlobe} className='text-muted' size='sm' />
               <a
-                href={post.website.startsWith('http') ? post.website : `https://${post.website}`}
+                href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-decoration-none text-muted small'
                 style={{ wordBreak: 'break-all' }}
               >
-                {post.website}
+                {profile.website}
               </a>
             </div>
           )}

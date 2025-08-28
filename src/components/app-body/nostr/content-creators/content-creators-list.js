@@ -19,7 +19,6 @@ import axios from 'axios'
 // Local libraries
 import config from '../../../../config'
 import ContentCard from './content-card'
-import { RelayPool } from 'nostr'
 
 // Global variables and constants
 const SERVER = config.dexServer
@@ -31,66 +30,20 @@ function ContentCreators (props) {
 
   const [followList, setFollowList] = useState([])
 
+  // Get the list of profiles followed by the user.
+  // It aggregates all the followers from all the relays.
   const getFollowList = useCallback(async () => {
-    const list = await new Promise((resolve, reject) => {
-      let list = []
-      const { nostrKeyPair } = appData.bchWalletState
+    const { nostrKeyPair } = appData.bchWalletState
 
-      const pool = RelayPool(config.nostrRelays)
-      // const pool = RelayPool([config.nostrRelay])
-      pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 1, kinds: [3], authors: [nostrKeyPair.pubHex] })
-      })
-
-      pool.on('eose', relay => {
-        console.log('Closing Relay')
-        relay.close()
-        /** This ensures to return an empty array if no records are found!
-         *  Applies for new users that don't have a follow list
-        */
-        resolve(list)
-      })
-
-      pool.on('event', (relay, subId, ev) => {
-        console.log('Received event:', ev)
-        list = ev.tags
-        resolve(list)
-      })
-    })
-
-    console.log('Follow List', list)
+    const pubKeyHex = nostrKeyPair.pubHex
+    const list = await appData.nostrQueries.getFollowList(pubKeyHex)
     setFollowList(list)
   }, [appData])
-
-  const loadProfile = useCallback(async (pubKey) => {
-    return new Promise((resolve) => {
-      // const pool = RelayPool(config.nostrRelays)
-      const pool = RelayPool([config.nostrRelay])
-      pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubKey] })
-      })
-
-      pool.on('eose', relay => {
-        console.log('Closing Relay')
-        relay.close()
-        resolve(false)
-      })
-
-      pool.on('event', (relay, subId, ev) => {
-        try {
-          const profile = JSON.parse(ev.content)
-          // console.log('profile', profile)
-          resolve(profile)
-        } catch (error) {
-          resolve(false)
-        }
-      })
-    })
-  }, [])
 
   useEffect(() => {
     const loadCreators = async () => {
       try {
+        console.log('loadCreators()')
         const creatorsRes = await axios.get(`${SERVER}/sm/list/all/0`)
         const creators = creatorsRes.data
         // console.log('creators', creators)
@@ -100,8 +53,9 @@ function ContentCreators (props) {
         for (let i = 0; i < creators.length; i++) {
           try {
             const creator = creators[i]
-            const profile = await loadProfile(creator.pubkey)
-
+            const profileRes = await appData.nostrQueries.getProfile(creator.pubkey)
+            let profile = profileRes
+            if (!profileRes) profile = {}
             // the folowing lines should re-render the ContentCard
             setCreators(prevCreators => {
               const updatedCreators = [...prevCreators]
@@ -121,7 +75,7 @@ function ContentCreators (props) {
       loadCreators()
       getFollowList()
     }
-  }, [loaded, followList, getFollowList, loadProfile])
+  }, [loaded, getFollowList, appData])
 
   const filteredCreators = useCallback(() => {
     if (!creators || creators.length === 0) {

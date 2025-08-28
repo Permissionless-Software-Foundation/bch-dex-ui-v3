@@ -11,12 +11,11 @@ import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
 
 // Local libraries
-import config from '../../../../config'
 
 function PublicPost (props) {
   const [accordionKey, setAccordionKey] = useState('0')
   const [onFetch, setOnFetch] = useState(false)
-  const { bchWalletState } = props.appData
+  const { bchWalletState, writeRelays } = props.appData
   const [formData, setFormData] = useState({
     content: ''
   })
@@ -64,7 +63,7 @@ function PublicPost (props) {
       console.log('signedEvent: ', signedEvent)
 
       // Publish the post to each relay.
-      config.nostrRelays.map(async (relayUrl) => {
+      writeRelays.map(async (relayUrl) => {
         try {
           // Connect to a relay.
           const relay = await Relay.connect(relayUrl)

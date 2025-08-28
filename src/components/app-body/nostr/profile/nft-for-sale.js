@@ -14,6 +14,7 @@ function NFTForSale (props) {
   const [offersAreLoaded, setOffersAreLoaded] = useState(false)
   const [iconsAreLoaded, setIconsAreLoaded] = useState(false)
   const [dataAreLoaded, setDataAreLoaded] = useState(false)
+  const [startAsync, setStartAsync] = useState(false)
 
   const getAddressByNpub = useCallback(async () => {
     const url = `${config.dexServer}/sm/npub/${npub}`
@@ -24,6 +25,7 @@ function NFTForSale (props) {
 
   // Handler for refresh button
   const handleRefresh = () => {
+    console.log('handle refresh')
     loadNftOffers()
   }
 
@@ -218,9 +220,13 @@ function NFTForSale (props) {
 
   // Effect to load NFTs on component mount
   useEffect(() => {
-    console.log('loading nfts for sale')
-    loadNftOffers()
-  }, [loadNftOffers])
+    // Prevent to load data twice
+    if (!startAsync) {
+      console.log('loading nfts for sale')
+      loadNftOffers()
+      setStartAsync(true)
+    }
+  }, [loadNftOffers, startAsync])
 
   // Get Cid from url
   const parseCid = (url) => {

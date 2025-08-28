@@ -17,7 +17,7 @@ function Profile (props) {
   return (
     <>
       <Container>
-        <ProfileRead {...props} setProfile={setProfile} npub={npub} />
+        <ProfileRead {...props} onProfileRead={setProfile} npub={npub} />
         <PublicRead {...props} profile={profile} npub={npub} />
         <SlpTokensDisplay {...props} npub={npub} />
         <NFTForSale {...props} npub={npub} />

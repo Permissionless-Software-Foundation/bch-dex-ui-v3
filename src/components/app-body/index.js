@@ -15,14 +15,13 @@ import GetBalance from './balance'
 import Wallet from './bch-wallet'
 import Placeholder2 from './placeholder2'
 import Placeholder3 from './placeholder3'
-// import ServerSelectView from './servers/select-server-view'
+import ServerSelectView from './configuration/select-server-view.js'
 // import SelectServerButton from './servers/select-server-button'
 import NftsForSale from './nfts-for-sale'
 import BchSend from './bch-send'
 import SlpTokens from './slp-tokens'
 import SweepWif from './sweep/index.js'
 import SignMessage from './sign/index.js'
-import ServerSelectView from './configuration/select-server-view'
 import Login from './account-creation/login'
 import ConfigurationView from './configuration/index'
 import NostrPost from './nostr/nostr-post/index.js'
@@ -31,6 +30,7 @@ import Feeds from './nostr/feeds/index.js'
 import ContentCreators from './nostr/content-creators/index.js'
 import UserDataReview from './user-data-review'
 import Offers from './offers'
+import NostrChat from './nostr-chat'
 function AppBody (props) {
   // Dependency injection through props
   const appData = props.appData
@@ -57,6 +57,7 @@ function AppBody (props) {
         <Route path='/content-creators' element={<ContentCreators appData={appData} />} />
         <Route path='/user-data/:tokenId' element={<UserDataReview appData={appData} />} />
         <Route path='/offers' element={<Offers appData={appData} />} />
+        <Route path='/nostr-chat' element={<NostrChat appData={appData} />} />
       </Routes>
       {/** Show in all paths except the servers view */}
       {/* {appData.currentPath !== '/servers' && <SelectServerButton linkTo='/servers' appData={appData} />} */}

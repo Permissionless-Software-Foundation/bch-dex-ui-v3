@@ -1,27 +1,36 @@
-import { useState, useEffect } from 'react'
+// Global imports
+import { useState, useEffect, useRef } from 'react'
 // import { useQueryParam, StringParam } from 'use-query-params'
 import useLocalStorageState from 'use-local-storage-state'
-import AppUtil from '../util'
 import { useNavigate, useLocation } from 'react-router-dom'
 
+// Local imports
+import AppUtil from '../util'
+import NostrQueries from '../services/nostr-queries'
 import config from '../config'
 
 function useAppState () {
-  const location = useLocation()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Default local storage object
+  const localStorageDefault = {
+    serverUrl: 'https://free-bch.fullstack.cash', // Default server
+    relays: [
+      { address: 'wss://nostr-relay.psfoundation.info', read: true, write: true },
+      { address: 'wss://relay.damus.io', read: true, write: true }
+    ],
+    nftData: {},
+    lastFeedTab: 'feed'
+  }
   // Load Local storage Data
   const [lsState, setLSState, { removeItem }] = useLocalStorageState('bchWalletState-template', {
     ssr: true,
-    defaultValue: {
-      serverUrl: 'https://free-bch.fullstack.cash', // Default server
-      dexServerUrl: config.dexServer // Default dex server url
-    },
-    nftData: {},
-    lastFeedTab: 'feed'
+    defaultValue: localStorageDefault
+
   })
 
   console.log('lsState: ', lsState)
-
   // Initialize  data states
   const [serverUrl, setServerUrl] = useState(lsState.serverUrl) // Default server url
   const [menuState, setMenuState] = useState(0)
@@ -31,7 +40,7 @@ function useAppState () {
   const [dexServerUrl, setDexServerUrl] = useState(lsState.dexServerUrl) // selected dex server url
   const [dexLib, setDexLib] = useState(false)
   const [nostr, setNostr] = useState(false)
-  const [lastFeedTab, setLastFeedTab] = useState(lsState.lastFeedTab || 'feed')
+  const [lastFeedTab, setLastFeedTab] = useState(lsState.lastFeedTab || localStorageDefault.lastFeedTab)
 
   // Startup state management
   const [asyncInitStarted, setAsyncInitStarted] = useState(false)
@@ -50,6 +59,14 @@ function useAppState () {
 
   // NFTs for sale stored data to improve performance
   const [nftForSaleCacheData, setNftForSaleCacheData] = useState(lsState.nftData || {})
+
+  // Relays
+  const [relaysData, setRelaysData] = useState(lsState.relays || localStorageDefault.relays) // All relays data
+  const [readRelays, setReadRelays] = useState(relaysData.filter(relay => relay.read).map(relay => relay.address)) // Read relays
+  const [writeRelays, setWriteRelays] = useState(relaysData.filter(relay => relay.write).map(relay => relay.address)) // Write relays
+
+  // Nostr queries service
+  const nostrQueriesRef = useRef(new NostrQueries({ relays: readRelays }))
 
   // The wallet state makes this a true progressive web app (PWA). As
   // balances, UTXOs, and tokens are retrieved, this state is updated.
@@ -142,6 +159,35 @@ function useAppState () {
     setNftForSaleCacheData(allCacheData) // Update the state
     updateLocalStorage({ nftData: allCacheData }) // Update the local storage
   }
+  // Update relays data
+  function updateRelaysData (relaysData) {
+    setRelaysData(relaysData)
+    updateLocalStorage({ relays: relaysData }) // Update the local storage
+    // get the relay addresses with read set to true
+    const readRelays = relaysData.filter(relay => relay.read).map(relay => relay.address)
+    setReadRelays(readRelays)
+    console.log('readRelays: ', readRelays)
+    // get the relay addresses with write set to true
+    const writeRelays = relaysData.filter(relay => relay.write).map(relay => relay.address)
+    setWriteRelays(writeRelays)
+    console.log('writeRelays: ', writeRelays)
+    nostrQueriesRef.current = new NostrQueries({ relays: readRelays })
+  }
+  // Restore relays data
+  function restoreRelaysData () {
+    const relaysData = [...localStorageDefault.relays] // Create a new array  in order to detect changes
+    setRelaysData(relaysData)
+    updateLocalStorage({ relays: relaysData })
+    // get the relay addresses with read set to true
+    const readRelays = relaysData.filter(relay => relay.read).map(relay => relay.address)
+    setReadRelays(readRelays)
+    console.log('readRelays: ', readRelays)
+    // get the relay addresses with write set to true
+    const writeRelays = relaysData.filter(relay => relay.write).map(relay => relay.address)
+    setWriteRelays(writeRelays)
+    console.log('writeRelays: ', writeRelays)
+    nostrQueriesRef.current = new NostrQueries({ relays: readRelays })
+  }
 
   return {
     serverUrl,
@@ -192,7 +238,14 @@ function useAppState () {
     lastFeedTab,
     setLastFeedTab,
     isSingleView,
-    setIsSingleView
+    setIsSingleView,
+    nostrQueries: nostrQueriesRef.current,
+    relaysData,
+    updateRelaysData,
+    restoreRelaysData,
+    readRelays,
+    writeRelays
+
   }
 }
 

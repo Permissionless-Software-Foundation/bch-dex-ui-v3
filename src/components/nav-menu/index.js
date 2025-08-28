@@ -99,6 +99,13 @@ function NavMenu (props) {
                   >
                     Content Creators
                   </NavLink>
+                  <NavLink
+                    className={currentPath === '/nostr-chat' ? 'nav-link-active' : 'nav-link-inactive'}
+                    to='/nostr-chat'
+                    onClick={handleClickEvent}
+                  >
+                    Nostr Chat
+                  </NavLink>
 
                   <hr />
 

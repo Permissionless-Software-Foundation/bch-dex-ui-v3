@@ -6,49 +6,30 @@ import React, { useEffect, useState } from 'react'
 import { Container, Card, Spinner } from 'react-bootstrap'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
-import { RelayPool } from 'nostr'
-import * as nip19 from 'nostr-tools/nip19'
 
 // Local libraries
-import config from '../../../../config'
 import NostrFormat from '../nostr-format'
 
 function PublicRead (props) {
-  const { npub } = props
-  const { bchWalletState } = props.appData
+  const { npub, appData } = props
+  const { bchWalletState } = appData
   const [posts, setPosts] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [profilePictureError, setProfilePictureError] = useState(false)
 
   useEffect(() => {
     // Get Last post from a author
-    const start = () => {
-      const pubHexData = nip19.decode(npub)
-      const pubHex = pubHexData.data
-      console.log('pubhex', pubHex)
-
-      const pool = RelayPool(config.nostrRelays)
-      pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 5, kinds: [1], authors: [pubHex] })
-        setLoaded(true)
-      })
-
-      pool.on('eose', relay => {
-        console.log('Closing Relay')
-        setLoaded(true)
-        relay.close()
-      })
-
-      pool.on('event', (relay, subId, ev) => {
-        console.log('Received event:', ev)
-        setPosts(currentPosts => [...currentPosts, ev])
-      })
+    const start = async () => {
+      const pubKeyHex = appData.nostrQueries.npubToHex(npub)
+      const feeds = await appData.nostrQueries.getUserFeeds(pubKeyHex)
+      setPosts(feeds)
+      setLoaded(true)
     }
 
     if (!loaded && npub) {
       start()
     }
-  }, [bchWalletState, loaded, npub])
+  }, [bchWalletState, loaded, npub, appData])
 
   const handleProfilePictureError = () => {
     setProfilePictureError(true)

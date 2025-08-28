@@ -1,117 +1,54 @@
 /*
   Component for reading the nostr feeds.
-
-  TODO:
-  - fetchProfile() should retrieve a profile from multiple relays. If the first relay returns a profile,
-    then that profile can be used and promise resolved. If the first relay returns no profile, the next
-    one should be tried until all relays are exhausted or one returns a profile.
-
-  - useEffect() retrieves the feeds. This should cycle through each relay and posts from each one.
-    Once each relays has been tried, the posts should remove duplicate entries. Finally posts should
-    be sorted by date.
-
-  - Clicking on a profile picture, name, or npub should open the profile for that user in a new tab.
 */
 
 // Global npm libraries
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Container, Nav, Tab, Spinner } from 'react-bootstrap'
-import { RelayPool } from 'nostr'
 
 // Local libraries
 import Feed from './feed'
 import Following from './following'
-import config from '../../../../config'
 
 function Feeds (props) {
   const { appData } = props
   const [activeTab, setActiveTab] = useState(appData.lastFeedTab)
 
-  const { bchWalletState } = appData
   const [posts, setPosts] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [profiles, setProfiles] = useState({})
 
-  // function to fetch profile and set it to profiles state
-  const fetchProfile = useCallback(async (pubkey) => {
-    // no fetch profile again if it exist
-    let hasProfileRequest = false
-    setProfiles(currentProfiles => {
-      if (currentProfiles[pubkey]) {
-        hasProfileRequest = true
-        return currentProfiles
-      } else {
-        const newProfiles = { ...currentProfiles }
-        newProfiles[pubkey] = { loaded: false }
-        return newProfiles
-      }
-    })
-    if (hasProfileRequest) return
+  // Load data on component mount.
+  useEffect(() => {
+    const loadData = async () => {
+      // Get feeds
+      const feeds = await appData.nostrQueries.getGlobalFeeds()
+      setPosts(feeds)
+      setLoaded(true)
 
-    // const pool = RelayPool(config.nostrRelays)
-    const pool = RelayPool([config.nostrRelay])
-    pool.on('open', relay => {
-      relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubkey] })
-    })
+      const loadedProfiles = [] // fetched profiles ( this will be used for prevent load the same profile multiple times.)
+      // Map feeds and get feed owner profile.
+      for (let i = 0; i < feeds.length; i++) {
+        const pubKey = feeds[i].pubkey
 
-    pool.on('eose', relay => {
-      relay.close()
-      try {
-      // Mark unknown profiles. From this way we can know which profile was fetched and not found.
-        setProfiles(currentProfiles => {
-          if (!currentProfiles[pubkey]) {
-            const newProfiles = { ...currentProfiles }
-            newProfiles[pubkey] = { loaded: true }
-            return newProfiles
-          }
-          return currentProfiles
-        })
-      } catch (error) {
-        console.warn(error)
-        // skip error
-      }
-    })
+        const exist = loadedProfiles.find((val) => { return val === pubKey })
+        if (exist) { continue }
+        // Fech profile.
+        const profile = await appData.nostrQueries.getProfile(pubKey)
+        loadedProfiles.push(pubKey) // mark as loaded
 
-    pool.on('event', (relay, subId, ev) => {
-      try {
-        // update profiles data
-        const profile = JSON.parse(ev.content)
+        // Update profile state
         setProfiles(currentProfiles => {
           const newProfiles = { ...currentProfiles }
-          newProfiles[pubkey] = profile
+          newProfiles[pubKey] = profile
           return newProfiles
         })
-      } catch (error) {
-        // skip error
       }
-    })
-  }, [])
-
-  // Get global feed posts
-  useEffect(() => {
-    const start = () => {
-      // const pool = RelayPool(config.nostrRelays)
-      const pool = RelayPool([config.nostrRelay])
-      pool.on('open', relay => {
-        relay.subscribe('REQ', { limit: 10, kinds: [1], '#t': ['slpdex-socialmedia'] })
-      })
-
-      pool.on('eose', relay => {
-        setLoaded(true)
-        relay.close()
-      })
-
-      pool.on('event', async (relay, subId, ev) => {
-        setPosts(currentPosts => [...currentPosts, ev])
-        // fetch post profile and set it to profiles state
-        fetchProfile(ev.pubkey)
-      })
     }
-
     if (!loaded) {
-      start()
+      loadData()
     }
-  }, [bchWalletState, loaded, fetchProfile])
+  }, [loaded, appData])
 
   const onChangeTab = (tab) => {
     setActiveTab(tab)

@@ -1,6 +1,7 @@
 /**
  * Component for displaying nostr posts
  */
+
 // Global npm libraries
 import React, { useCallback, useEffect, useState } from 'react'
 import { Card, Spinner } from 'react-bootstrap'
@@ -8,20 +9,21 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faHeart as faHeartSolid } from '@fortawesome/free-solid-svg-icons'
 import { faHeart } from '@fortawesome/free-regular-svg-icons'
 import * as nip19 from 'nostr-tools/nip19'
-import NostrFormat from '../nostr-format'
 import { finalizeEvent } from 'nostr-tools/pure'
 import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
-import { RelayPool } from 'nostr'
+
+// Local libraries
+import CopyOnClick from '../../bch-wallet/copy-on-click.js'
+import NostrFormat from '../nostr-format'
 
 function FeedCard (props) {
   const { post, appData, profiles } = props
-  const { nostrKeyPair } = appData.bchWalletState
+  const { nostrKeyPair, writeRelays } = appData.bchWalletState
 
   const [profile, setProfile] = useState(profiles[post.pubkey])
 
   const [npub, setNpub] = useState('')
-  const [isClicked, setIsClicked] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(null)
   const [likesFetched, setLikesFetched] = useState(false)
@@ -30,53 +32,19 @@ function FeedCard (props) {
   // function to fetch a post likes reaction
   const handleLikes = useCallback(async (post, userPubKey) => {
     try {
-      const psf = 'wss://nostr-relay.psfoundation.info'
-      const res = await new Promise((resolve) => {
-        let likesCnt = 0
-        let userLikedCnt = 0
-        const pool = RelayPool([psf])
-        pool.on('open', relay => {
-          relay.subscribe('subid', { kinds: [7], '#e': [post.id] })
-        })
+      // Get all post likes events
+      const likesArr = await appData.nostrQueries.getPostLikes(post.id)
+      const likesCount = likesArr.length
 
-        pool.on('eose', relay => {
-          relay.close()
-          resolve({
-            count: likesCnt,
-            userLiked: userLikedCnt > 0
-          })
-        })
-
-        pool.on('event', (relay, subId, ev) => {
-          try {
-            // Count likes
-            if (ev.content === '+') {
-              likesCnt++
-              // Count user likes
-              if (ev.pubkey === userPubKey) {
-                userLikedCnt++
-              }
-            }
-            // Count dislikes
-            if (ev.content === '-') {
-              likesCnt--
-              // Count user dislikes.
-              if (ev.pubkey === userPubKey) {
-                userLikedCnt--
-              }
-            }
-          } catch (error) {
-            // skip error
-          }
-        })
-      })
-      setLikesCount(res.count)
-      setIsLiked(res.userLiked)
+      // Verify if the users pubkey is in the likes array
+      const userLikedPost = likesArr.find(val => { return val.pubkey === userPubKey })
+      setLikesCount(likesCount)
+      setIsLiked(userLikedPost)
       setLikesFetched(true)
     } catch (error) {
       console.warn(error)
     }
-  }, [])
+  }, [appData])
 
   const handleProfilePictureError = () => {
     setProfilePictureError(true)
@@ -104,13 +72,6 @@ function FeedCard (props) {
     }
   }, [profiles, post])
 
-  // copy to clipboard
-  const copyToClipboard = useCallback((value) => {
-    setIsClicked(true)
-    appData.appUtil.copyToClipboard(value)
-    setTimeout(() => setIsClicked(false), 200)
-  }, [appData])
-
   // get short npub
   const getShortNpub = useCallback((npub) => {
     return npub.slice(0, 8) + '...' + npub.slice(-5)
@@ -126,9 +87,6 @@ function FeedCard (props) {
       // Convert private key to binary
       const privateKeyBin = hexToBytes(nostrKeyPair.privHex)
 
-      // Relay list
-      const psf = 'wss://nostr-relay.psfoundation.info'
-
       // Define if like or dislike
       let content = '+'
       if (isLiked) { content = '-' }
@@ -138,27 +96,32 @@ function FeedCard (props) {
         kind: 7,
         created_at: Math.floor(Date.now() / 1000),
         tags: [
-          ['e', post.id, psf],
-          ['p', psf, nostrKeyPair.pubHex]
+          ['e', post.id],
+          ['p', nostrKeyPair.pubHex]
         ],
         content
       }
       console.log(`eventTemplate: ${JSON.stringify(eventTemplate, null, 2)}`)
 
-      // Sign the post
-      const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
-      console.log('signedEvent: ', signedEvent)
+      writeRelays.map(async (relayUrl) => {
+        try {
+          // Sign the post
+          const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
+          console.log('signedEvent: ', signedEvent)
+          // Connect to a relay.
+          const relay = await Relay.connect(relayUrl)
+          console.log(`connected to ${relay.url}`)
 
-      // Connect to a relay.
-      const relay = await Relay.connect(psf)
-      console.log(`connected to ${relay.url}`)
+          // Publish the message to the relay.
+          const result = await relay.publish(signedEvent)
+          console.log('result: ', result)
 
-      // Publish the message to the relay.
-      const result = await relay.publish(signedEvent)
-      console.log('result: ', result)
-
-      // Close the connection to the relay.
-      relay.close()
+          // Close the connection to the relay.
+          relay.close()
+        } catch (err) {
+          console.warn(`Skipping publishing to ${relayUrl} due to error: ${err}`)
+        }
+      })
 
       await handleLikes(post, nostrKeyPair.pubHex)
       setLikesFetched(true)
@@ -166,6 +129,11 @@ function FeedCard (props) {
       console.warn(error)
       setLikesFetched(true)
     }
+  }
+
+  const goToProfile = () => {
+    const profileUrl = `${window.location.origin}/profile/${npub}#single-view`
+    window.open(profileUrl, '_blank')
   }
 
   return (
@@ -186,20 +154,21 @@ function FeedCard (props) {
                   src={profile.picture}
                   alt='Profile'
                   className='rounded-circle w-100 h-100'
-                  style={{ objectFit: 'cover' }}
+                  style={{ objectFit: 'cover', cursor: 'pointer' }}
                   onError={handleProfilePictureError}
                   onLoad={handleProfilePictureLoad}
+                  onClick={goToProfile}
                 />
                 )
               : (
-                <FontAwesomeIcon icon={faUser} size='1x' color='#7c7c7d' />
+                <FontAwesomeIcon icon={faUser} size='1x' color='#7c7c7d' style={{ cursor: 'pointer' }} onClick={goToProfile} />
                 )}
           </div>
           <div className='flex-grow-1'>
             <div className='fw-bold mb-1'>
-              {profile && profile.name && <span>{profile.name}</span>}
+              {profile && profile.name && <span style={{ cursor: 'pointer' }} onClick={goToProfile}>{profile.name}</span>}
               {!profile?.name && (
-                <span>
+                <span style={{ cursor: 'pointer' }} onClick={goToProfile}>
                   {post.pubkey.slice(0, 8) + '...'}
                   {!profile?.loaded && <Spinner animation='border' size='sm' className='ms-2' />}
                 </span>
@@ -211,14 +180,20 @@ function FeedCard (props) {
                   title='Copy to clipboard'
                   style={{
                     cursor: 'pointer',
-                    transform: isClicked ? 'scale(0.95)' : 'scale(1)',
                     transition: 'transform 0.1s ease',
-                    display: 'inline-block'
+                    display: 'inline-block',
+                    marginRight: '5px'
                   }}
-                  onClick={() => copyToClipboard(npub)}
+                  onClick={goToProfile}
+
                 >
                   {getShortNpub(npub)}
                 </span>
+                <CopyOnClick
+                  walletProp='npub'
+                  appData={props.appData}
+                  value={npub}
+                />
               </small>
             )}
           </div>
