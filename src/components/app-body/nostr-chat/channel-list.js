@@ -7,9 +7,9 @@ import React from 'react'
 import { ListGroup } from 'react-bootstrap'
 import ChannelItem from './channel-item'
 function ChannelList (props) {
-  const { channels, selectedChannel } = props
+  const { groupChannels, selectedChannel } = props
 
-  if (!channels || channels.length === 0) {
+  if (!groupChannels || groupChannels.length === 0) {
     return (
       <div className='text-muted small' style={{ fontStyle: 'italic' }}>
         No channels available
@@ -19,7 +19,7 @@ function ChannelList (props) {
 
   return (
     <ListGroup variant='flush' className='bg-transparent'>
-      {channels.map((channel, i) => (
+      {groupChannels.map((channel, i) => (
         <ChannelItem key={`channel${i}`} channel={channel} selectedChannel={selectedChannel} {...props} />
       ))}
     </ListGroup>

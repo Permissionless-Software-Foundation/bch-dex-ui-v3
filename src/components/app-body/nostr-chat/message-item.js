@@ -3,15 +3,24 @@
 */
 
 // Global npm libraries
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
+import { Spinner } from 'react-bootstrap'
+import NostrFormat from '../../app-body/nostr/nostr-format'
+import ProfileMenu from './profile-menu'
 
 function MessageItem (props) {
-  const { message, profiles } = props
+  const { message, profiles, selectedChannel } = props
   const [profile, setProfile] = useState(null)
 
-  const msgRef = useRef(null)
+  const [isDm, setIsDm] = useState(false)
+
+  // Define type between private or public
+  useEffect(() => {
+    const dmTo = profiles[selectedChannel]
+    setIsDm(!!dmTo)
+  }, [selectedChannel, profiles])
 
   // Format timestamp
   const formatTime = (timestamp) => {
@@ -23,22 +32,13 @@ function MessageItem (props) {
   }
 
   useEffect(() => {
-    if (!profile && profiles[message.pubkey]) {
+    if (profiles[message.pubkey]) {
       setProfile(profiles[message.pubkey])
     }
   }, [profiles, message])
 
-  useEffect(() => {
-    if (msgRef.current && message.latest) {
-      msgRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end'
-      })
-    }
-  }, [msgRef.current, message])
-
   return (
-    <div className='mb-3 d-flex align-items-start' ref={msgRef}>
+    <div className='mb-3 d-flex align-items-start'>
       {/* Message Content */}
       <div className='flex-grow-1'>
         <div
@@ -56,37 +56,63 @@ function MessageItem (props) {
             <div className='me-2 flex-shrink-0'>
               {profile?.picture
                 ? (
-                  <img
-                    src={profile.picture}
-                    alt={`${profile.name} Avatar`}
-                    className='rounded-circle'
-                    style={{ width: '24px', height: '24px' }}
-                    onError={(e) => {
-                      e.target.style.display = 'none'
-                      e.target.nextSibling.style.display = 'block'
-                    }}
-                  />
+                  <ProfileMenu
+                    profile={profile}
+                    isDm={isDm}
+                    {...props}
+                  >
+                    <img
+                      src={profile.picture}
+                      alt={`${profile.name} Avatar`}
+                      className='rounded-circle'
+                      style={{ width: '24px', height: '24px' }}
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.nextSibling.style.display = 'block'
+                      }}
+                    />
+                  </ProfileMenu>
                   )
-                : <FontAwesomeIcon
-                    icon={faUser}
-                    className='rounded-circle d-flex align-items-center justify-content-center'
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      backgroundColor: '#e9ecef',
-                      color: '#6c757d',
-                      fontSize: '12px',
-                      display: message.avatar ? 'none' : 'flex'
-                    }}
-                  />}
+                : (
+                  <ProfileMenu
+                    profile={profile}
+                    isDm={isDm}
+                    {...props}
+
+                  >
+                    <FontAwesomeIcon
+                      icon={faUser}
+                      className='rounded-circle d-flex align-items-center justify-content-center'
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        backgroundColor: '#e9ecef',
+                        color: '#6c757d',
+                        fontSize: '12px',
+                        display: message.avatar ? 'none' : 'flex'
+                      }}
+                    />
+                  </ProfileMenu>
+                  )}
             </div>
-            {!profile && <span className='fw-bold text-dark me-2'>{message.pubkey}</span>}
-            {profile && profile.name && <span className='fw-bold text-dark me-2'>{profile.name}</span>}
+            {!profile && <span className='fw-bold text-dark me-2'>{message.pubkey}<Spinner animation='border' size='sm' /></span>}
+            {profile && profile.name && (
+              <ProfileMenu
+                profile={profile}
+                isDm={isDm}
+                {...props}
+              >
+                <span className='fw-bold text-dark me-2'>
+                  {profile.name}
+                </span>
+              </ProfileMenu>
+            )}
 
             <small className='text-muted'>{formatTime(message.created_at * 1000)}</small>
           </div>
           <div style={{ lineHeight: '1.4', wordBreak: 'break-all' }}>
-            {message.content}
+            <NostrFormat content={message.content} />
+
           </div>
         </div>
       </div>

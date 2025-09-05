@@ -4,7 +4,7 @@
 
 // Global npm libraries
 import React, { useCallback, useEffect, useState } from 'react'
-import { ListGroup, Spinner } from 'react-bootstrap'
+import { Spinner } from 'react-bootstrap'
 
 export default function ChannelItem (props) {
   const { channel, selectedChannel, onChangeChannel, channelsData } = props
@@ -20,39 +20,86 @@ export default function ChannelItem (props) {
     }
   }, [chInfo, channelsData, channel])
 
+  const handleClick = () => {
+    if (onChangeChannel) {
+      onChangeChannel(channel)
+    }
+  }
+
   return (
-    <ListGroup.Item
-      onClick={() => { onChangeChannel(channel) }}
-      key={channel}
-      className='border-0 bg-transparent text-dark'
+    <div
+      className={`d-flex align-items-center p-2 rounded-3 mb-2 cursor-pointer ${selectedChannel === channel ? 'bg-primary text-white' : ''}`}
       style={{
         cursor: 'pointer',
-        backgroundColor: selectedChannel === channel ? '#6f42c1' : 'transparent',
-        borderRadius: '8px',
-        marginBottom: '4px',
-        padding: '10px 12px',
         transition: 'all 0.2s ease',
-        border: selectedChannel === channel ? 'none' : '1px solid transparent',
-        boxShadow: selectedChannel === channel ? '0 2px 4px rgba(111, 66, 193, 0.15)' : 'none'
+        backgroundColor: selectedChannel === channel ? '#0d6efd' : 'transparent',
+        border: '1px solid transparent'
+      }}
+      onClick={handleClick}
+      onMouseEnter={(e) => {
+        if (selectedChannel !== channel) {
+          e.currentTarget.style.backgroundColor = '#e9ecef'
+          e.currentTarget.style.borderColor = '#dee2e6'
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (selectedChannel !== channel) {
+          e.currentTarget.style.backgroundColor = 'transparent'
+          e.currentTarget.style.borderColor = 'transparent'
+        }
       }}
     >
-      {chInfo?.name &&
-        <div className='d-flex align-items-center'>
-          <span
-            className='fw-medium'
-            style={{
-              fontSize: '14px',
-              color: selectedChannel === channel ? '#444444' : '#495057',
-              fontWeight: selectedChannel === channel ? '600' : '500'
-            }}
+      {/* Channel Avatar/Icon */}
+      <div className='me-3 flex-shrink-0 d-flex align-items-center'>
+        {chInfo?.picture
+          ? (
+            <img
+              src={chInfo.picture}
+              alt={chInfo.name || 'Channel'}
+              className='rounded-circle'
+              style={{ width: '32px', height: '32px' }}
+            />
+            )
+          : (
+            <div
+              className='rounded-circle d-flex align-items-center justify-content-center'
+              style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: '#e9ecef',
+                color: '#6c757d',
+                fontSize: '14px'
+              }}
+            >
+              #
+            </div>
+            )}
+      </div>
+
+      {/* Channel Info */}
+      <div className='flex-grow-1 min-w-0'>
+        <div
+          className={`${selectedChannel === channel ? 'text-white' : 'text-dark'} fw-medium`}
+          style={{ fontSize: '14px' }}
+        >
+          {chInfo?.name || getShortName(channel)}
+        </div>
+        {!chInfo?.name && (
+          <div
+            className={`small ${selectedChannel === channel ? 'text-white-50' : 'text-muted'}`}
+            style={{ fontSize: '12px' }}
           >
-            {chInfo?.name || getShortName(channel)}
-          </span>
-        </div>}
-      {!chInfo?.name &&
-        <div className='d-flex align-items-center'>
-          {getShortName(channel)} <Spinner animation='border' size='sm' style={{ marginLeft: '5px' }} />
-        </div>}
-    </ListGroup.Item>
+            Loading channel...
+          </div>
+        )}
+      </div>
+
+      {/* Loading indicator */}
+      {!chInfo?.name && (
+        <div className='ms-2'>
+          <Spinner animation='border' size='sm' />
+        </div>
+      )}
+    </div>
   )
 }
