@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
+import { Spinner } from 'react-bootstrap'
 
 export default function DMItem (props) {
   const { dm, profiles, selectedChannel, onChangeChannel } = props
@@ -97,6 +98,7 @@ export default function DMItem (props) {
           style={{ fontSize: '14px' }}
         >
           {getShortName(profile?.name) || 'Unknown User'}
+          {!profile?.name && <Spinner animation='border' size='sm' style={{ marginLeft: '5px' }} />}
         </div>
         {/*         <div
           className={`small ${isSelected ? 'text-white-50' : 'text-muted'} ${dm.unreadCount > 0 ? 'fw-bold' : ''}`}

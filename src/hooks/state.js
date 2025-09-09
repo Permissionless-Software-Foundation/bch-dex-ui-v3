@@ -68,6 +68,9 @@ function useAppState () {
   // Nostr queries service
   const nostrQueriesRef = useRef(new NostrQueries({ relays: readRelays }))
 
+  // ProfileDM
+  const [startChannelChat, setStartChannelChat] = useState('')
+
   // The wallet state makes this a true progressive web app (PWA). As
   // balances, UTXOs, and tokens are retrieved, this state is updated.
   // properties are enumerated here for the purpose of documentation.
@@ -244,8 +247,9 @@ function useAppState () {
     updateRelaysData,
     restoreRelaysData,
     readRelays,
-    writeRelays
-
+    writeRelays,
+    startChannelChat,
+    setStartChannelChat
   }
 }
 

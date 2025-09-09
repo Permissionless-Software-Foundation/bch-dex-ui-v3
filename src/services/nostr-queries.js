@@ -401,7 +401,7 @@ export default class NostrQueries {
         })
 
         pool.on('event', (relay, subId, ev) => {
-          console.log('post retrieved from ', relay.url, ev.sig)
+          // console.log('post retrieved from ', relay.url, ev.sig)
           if (ev.pubkey === pubKey) {
             const pk = ev.tags[0][1]
             list = [...list, pk]

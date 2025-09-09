@@ -10,6 +10,7 @@ import CopyOnClick from '../../bch-wallet/copy-on-click.js'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faGlobe } from '@fortawesome/free-solid-svg-icons'
 import * as nip19 from 'nostr-tools/nip19'
+import { useNavigate } from 'react-router-dom'
 
 // Local libraries
 import NostrFormat from '../nostr-format'
@@ -18,14 +19,17 @@ function ProfileRead (props) {
   const { npub, appData } = props
   const { onProfileRead } = props
   const [profile, setProfile] = useState({})
+  const [pubKey, setPubKey] = useState({})
+
   const [loaded, setLoaded] = useState(false)
   const [imageError, setImageError] = useState({ picture: false, banner: false })
+  const navigate = useNavigate()
 
   useEffect(() => {
     const start = async () => {
       const pubHexData = nip19.decode(npub)
       const pubHex = pubHexData.data
-
+      setPubKey(pubHex)
       const profile = await appData.nostrQueries.getProfile(pubHex)
       if (profile) {
         onProfileRead(profile)
@@ -46,6 +50,13 @@ function ProfileRead (props) {
 
   const handleImageLoad = (type) => {
     setImageError(prev => ({ ...prev, [type]: false }))
+  }
+
+  const handleMessage = () => {
+    console.log('appData', appData)
+    const { setStartChannelChat } = appData
+    setStartChannelChat(pubKey)
+    navigate('/nostr-chat')
   }
 
   return (
@@ -146,6 +157,8 @@ function ProfileRead (props) {
             variant='primary'
             className='px-3 px-md-4 py-2 rounded-pill fw-semibold'
             style={{ minWidth: '120px' }}
+            onClick={handleMessage}
+            disabled={!loaded}
           >
             <i className='bi bi-chat-dots me-2' />
             Message

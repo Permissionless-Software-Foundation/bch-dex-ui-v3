@@ -9,6 +9,7 @@ import React from 'react'
 import ChatHeader from './chat-header'
 import MessageList from './message-list'
 import MessageInput from './message-input'
+import { Spinner } from 'react-bootstrap'
 
 function ChatMain (props) {
   const { selectedChannel, messages } = props
@@ -16,9 +17,9 @@ function ChatMain (props) {
   return (
     <>
       {!selectedChannel && (
-        <div className='h-100 d-flex align-items-center justify-content-center' style={{ backgroundColor: '#f8f9fa' }}>
+        <div className='h-100 d-flex align-items-center justify-content-center' style={{ backgroundColor: '#f8f9fa', minHeight: '200px' }}>
           <div className='text-center text-muted'>
-            <h4>Select a channel to start chatting</h4>
+            <Spinner animation='border' size='sm' />
           </div>
         </div>
       )}

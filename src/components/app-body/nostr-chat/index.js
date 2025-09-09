@@ -14,7 +14,8 @@ import config from '../../../config'
 
 function NostrChat (props) {
   const { appData } = props
-  const { nostrQueries, bchWalletState } = appData
+  const { nostrQueries, bchWalletState, startChannelChat } = appData
+
   const [messages, setMessages] = useState([])
   const [loadedMessages, setLoadedMessages] = useState(false)
   const [profiles, setProfiles] = useState({})
@@ -24,11 +25,85 @@ function NostrChat (props) {
   const [dmChannels, setDmChannels] = useState([])
   const [dmListLoaded, setDmListLoaded] = useState(false)
 
-  const [selectedChannel, setSelectedChannel] = useState(config.chatsId[0])
+  const [selectedChannel, setSelectedChannel] = useState(null)
   const [selectedChannelIsDm, setSelectedChannelIsDm] = useState(false)
 
   const profilesRef = useRef({})
   const dmChannelsRef = useRef([])
+
+  // Reset states on change channel
+  const onChangeChannel = useCallback((ch) => {
+    if (selectedChannel === ch) return
+    const profiles = profilesRef.current
+    setSelectedChannelIsDm(!!profiles[ch])
+    setMessages([])
+    setLoadedMessages(false)
+    setSelectedChannel(ch)
+  }, [selectedChannel])
+
+  // Add a new DM to the list
+  const addPrivateMessage = useCallback(async (profile) => {
+    try {
+      const exist = dmChannelsRef.current.find(val => val === profile.pubKey)
+      setMessages([])
+      setLoadedMessages(false)
+      onChangeChannel(profile.pubKey)
+      if (exist) return
+      setDmChannels(currentChs => {
+        let newChs = [...currentChs]
+        newChs.push(profile.pubKey)
+        newChs = newChs.filter((val, i, list) => {
+          const existingIndex = list.findIndex(value => value === val)
+          return existingIndex === i
+        })
+        dmChannelsRef.current = newChs
+        return newChs
+      })
+      setChannelsData(currentChs => {
+        const newChs = { ...currentChs }
+        newChs[profile.pubKey] = profile
+        return newChs
+      })
+    } catch (error) {
+      console.warn(error)
+    }
+  }, [onChangeChannel])
+
+  // Define starter chat
+  useEffect(() => {
+    // Start dm if a initial chat is provided from props
+    const startDM = async (pubKey) => {
+      const npub = await appData.nostrQueries.hexToNpub(pubKey)
+
+      const defaultProfile = { name: npub } // default profile
+      profilesRef.current[pubKey] = defaultProfile // update ref , to prevent fetch this profile again.
+      // Fetch profile
+      const nostrProfile = await appData.nostrQueries.getProfile(pubKey)
+
+      const profile = nostrProfile || defaultProfile
+      // add public key formats to profile object
+      profile.pubKey = pubKey
+      profile.npub = npub
+      // Update profiles state
+      setProfiles(currentProfiles => {
+        const newProfiles = { ...currentProfiles }
+        newProfiles[pubKey] = profile
+        profilesRef.current = newProfiles
+        return newProfiles
+      })
+      await addPrivateMessage(profile)
+    }
+
+    if (selectedChannel) return
+    if (!startChannelChat) {
+      // Set group chat as initial chat
+      setSelectedChannel(config.chatsId[0])
+      setSelectedChannelIsDm(false)
+    } else if (dmListLoaded) {
+      // Set provided profile as initial chat
+      startDM(startChannelChat)
+    }
+  }, [appData, startChannelChat, dmListLoaded, addPrivateMessage, selectedChannel])
 
   // Handle read messages
   const onMsgRead = useCallback(async (ev) => {
@@ -127,7 +202,7 @@ function NostrChat (props) {
     })
 
     pool.on('event', (relay, subId, ev) => {
-      console.log('post retrieved from ', relay.url, ev.content)
+      console.log('Group post retrieved from ', relay.url, ev.content)
       onMsgRead(ev)
     })
 
@@ -141,13 +216,11 @@ function NostrChat (props) {
   // Handle nostr pool for dm channels
   useEffect(() => {
     // fetch messages when channel selected and channel metadata are loaded
-    console.log('selectedChannel', selectedChannel)
-    console.log('selectedChannelIsDm', selectedChannelIsDm)
 
     if (!selectedChannel || !selectedChannelIsDm) return
+
     const { nostrKeyPair } = bchWalletState
     const dmPubKey = selectedChannel
-    console.log('dmPubKey', selectedChannel)
 
     // Load messages for group channel
     const relays = nostrQueries.relays
@@ -172,7 +245,7 @@ function NostrChat (props) {
     })
 
     pool.on('event', (relay, subId, ev) => {
-      console.log('post retrieved from ', relay.url, ev.content)
+      console.log('DM post retrieved from ', relay.url, ev.content)
       // decrpt message
       if (ev.pubkey === nostrKeyPair.pubHex) {
         // Sent messages
@@ -211,6 +284,7 @@ function NostrChat (props) {
       setDmChannels(currentChs => {
         const newChs = [...currentChs]
         newChs.push(profile.pubKey)
+
         dmChannelsRef.current = newChs
         return newChs
       })
@@ -254,18 +328,30 @@ function NostrChat (props) {
   // Load Dm channels
   useEffect(() => {
     const loadCurrentDms = async () => {
+      const { nostrQueries, bchWalletState } = appData
       const { nostrKeyPair } = bchWalletState
       const dms = await appData.nostrQueries.getDms(nostrKeyPair.pubHex)
+      setDmChannels(currentChs => {
+        let newChs = [...currentChs, ...dms]
+        newChs = newChs.filter((val, i, list) => {
+          const existingIndex = list.findIndex(value => value === val)
+          return existingIndex === i
+        })
+        dmChannelsRef.current = newChs
+        return newChs
+      })
+      setDmListLoaded(true)
+
       console.log('dm list', dms)
 
       for (let i = 0; i < dms.length; i++) {
         const pubKey = dms[i]
-        const npub = await appData.nostrQueries.hexToNpub(pubKey)
+        const npub = await nostrQueries.hexToNpub(pubKey)
 
         const defaultProfile = { name: npub } // default profile
         profilesRef.current[pubKey] = defaultProfile // update ref , to prevent fetch this profile again.
         // Fetch profile
-        const nostrProfile = await appData.nostrQueries.getProfile(pubKey)
+        const nostrProfile = await nostrQueries.getProfile(pubKey)
 
         const profile = nostrProfile || defaultProfile
         // add public key formats to profile object
@@ -279,13 +365,10 @@ function NostrChat (props) {
           return newProfiles
         })
       }
-      setDmChannels(dms)
-      setDmListLoaded(true)
-      dmChannelsRef.current = dms
     }
 
-    loadCurrentDms()
-  }, [bchWalletState, appData.nostrQueries])
+    if (!dmListLoaded) loadCurrentDms()
+  }, [appData, dmListLoaded])
 
   // Load public channels data
   useEffect(() => {
@@ -313,41 +396,8 @@ function NostrChat (props) {
       }
     }
 
-    // loadMessages()
     loadChData()
   }, [selectedChannel, appData, groupChannels])
-
-  const addPrivateMessage = async (profile) => {
-    try {
-      const exist = dmChannels.find(val => val === profile.pubKey)
-      setMessages([])
-      setLoadedMessages(false)
-      onChangeChannel(profile.pubKey)
-      if (exist) return
-      setDmChannels(currentChs => {
-        const newChs = [...currentChs]
-        newChs.push(profile.pubKey)
-        dmChannelsRef.current = newChs
-        return newChs
-      })
-      setChannelsData(currentChs => {
-        const newChs = { ...currentChs }
-        newChs[profile.pubKey] = profile
-        return newChs
-      })
-    } catch (error) {
-      console.warn(error)
-    }
-  }
-
-  // Reset states on change channel
-  const onChangeChannel = useCallback((ch) => {
-    if (selectedChannel === ch) return
-    setSelectedChannelIsDm(!!profiles[ch])
-    setMessages([])
-    setLoadedMessages(false)
-    setSelectedChannel(ch)
-  }, [selectedChannel, profiles])
 
   return (
     <>
