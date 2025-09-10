@@ -6,6 +6,7 @@ import { RelayPool } from 'nostr'
 import * as nip19 from 'nostr-tools/nip19'
 import { nip04 } from 'nostr-tools'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
+import axios from 'axios'
 
 export default class NostrQueries {
   constructor ({ relays }) {
@@ -13,6 +14,17 @@ export default class NostrQueries {
 
     this.loadedProfiles = {}
     this.loadedChannelsInfo = {}
+    this.blackList = []
+    this.blackListFetched = false
+  }
+
+  async start () {
+    try {
+      await this.getBlackList()
+    } catch (error) {
+      console.error('NostrQueries.start() error : ', error.message)
+      throw error
+    }
   }
 
   setRelays (relays) {
@@ -456,6 +468,41 @@ export default class NostrQueries {
       return decryptedMsg
     } catch (error) {
       console.warn(error)
+      throw error
+    }
+  }
+
+  async getBlackList () {
+    try {
+      if (this.blackListFetched) return
+      const opts = {
+        method: 'GET',
+        url: 'https://blacklists.psfoundation.info/nostr-chat-blacklist.json',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+
+      const result = await axios.request(opts)
+      const { data } = result
+      const { npubs } = data
+
+      // // Dev test mock npub for testing purposes
+      // const myNpubMock = 'npub1y3xq402pu9aqms3khetnt5gzm54t63pzcla56wwfmwshde0ws77qkff5gc'
+      // npubs.push(myNpubMock)
+      // //
+
+      this.blackListFetched = true
+      for (let i = 0; i < npubs.length; i++) {
+        const npub = npubs[i]
+        const pubKey = this.npubToHex(npub)
+        this.blackList.push(pubKey)
+      }
+      console.log('BlackList ', this.blackList)
+
+      return data
+    } catch (error) {
+      console.log('Error on getBlackList()')
       throw error
     }
   }

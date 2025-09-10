@@ -21,7 +21,8 @@ function useAppState () {
       { address: 'wss://relay.damus.io', read: true, write: true }
     ],
     nftData: {},
-    lastFeedTab: 'feed'
+    lastFeedTab: 'feed',
+    dexServerUrl: config.dexServer
   }
   // Load Local storage Data
   const [lsState, setLSState, { removeItem }] = useLocalStorageState('bchWalletState-template', {

@@ -203,7 +203,8 @@ function NostrChat (props) {
 
     pool.on('event', (relay, subId, ev) => {
       console.log('Group post retrieved from ', relay.url, ev.content)
-      onMsgRead(ev)
+      const onBlackList = nostrQueries.blackList.find((val) => { return val === ev.pubkey })
+      if (!onBlackList)onMsgRead(ev)
     })
 
     return () => {
