@@ -94,6 +94,8 @@ function SellButton ({ token, appData, refreshTokens }) {
 
       const userData = appData.userData
 
+      console.log('appData.dexServerUrl: ', appData.dexServerUrl)
+
       const options = {
         method: 'post',
         headers: {

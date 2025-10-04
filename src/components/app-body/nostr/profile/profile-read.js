@@ -16,8 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import NostrFormat from '../nostr-format'
 
 function ProfileRead (props) {
-  const { npub, appData } = props
-  const { onProfileRead } = props
+  const { npub, appData, onProfileRead, profileAddresses } = props
   const [profile, setProfile] = useState({})
   const [pubKey, setPubKey] = useState({})
 
@@ -118,6 +117,32 @@ function ProfileRead (props) {
             </span>
             <CopyOnClick walletProp='npub' appData={props.appData} value={npub} />
           </div>
+          {profileAddresses?.bchAddr && (
+            <div className='text-muted small mb-3 d-flex align-items-center flex-column flex-md-row'>
+              <span className='text-truncate me-2 mb-2 mb-md-0'>
+                <span className='d-md-none'>
+                  {`${profileAddresses?.bchAddr?.slice(0, 8)}...${profileAddresses?.bchAddr?.slice(-5)}`}
+                </span>
+                <span className='d-none d-md-inline'>
+                  {profileAddresses?.bchAddr}
+                </span>
+              </span>
+              <CopyOnClick walletProp='bchAddr' appData={props.appData} value={profileAddresses?.bchAddr} />
+            </div>
+          )}
+          {profileAddresses?.slpAddr && (
+            <div className='text-muted small mb-3 d-flex align-items-center flex-column flex-md-row'>
+              <span className='text-truncate me-2 mb-2 mb-md-0'>
+                <span className='d-md-none'>
+                  {`${profileAddresses?.slpAddr?.slice(0, 8)}...${profileAddresses?.slpAddr?.slice(-5)}`}
+                </span>
+                <span className='d-none d-md-inline'>
+                  {profileAddresses?.slpAddr}
+                </span>
+              </span>
+              <CopyOnClick walletProp='slpAddr' appData={props.appData} value={profileAddresses?.slpAddr} />
+            </div>
+          )}
 
           {/* About Section */}
           {profile.about && (

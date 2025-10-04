@@ -38,7 +38,7 @@ function useAppState () {
   const [wallet, setWallet] = useState(false)
   const [servers, setServers] = useState([])
   const [defaultDexServerUrl] = useState(config.dexServer) // Default dex server url
-  const [dexServerUrl, setDexServerUrl] = useState(lsState.dexServerUrl) // selected dex server url
+  const [dexServerUrl, setDexServerUrl] = useState(lsState.dexServerUrl || config.dexServer) // selected dex server url
   const [dexLib, setDexLib] = useState(false)
   const [nostr, setNostr] = useState(false)
   const [lastFeedTab, setLastFeedTab] = useState(lsState.lastFeedTab || localStorageDefault.lastFeedTab)

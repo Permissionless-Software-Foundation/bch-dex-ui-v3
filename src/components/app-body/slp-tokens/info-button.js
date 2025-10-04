@@ -6,8 +6,8 @@
 */
 
 // Global npm libraries
-import React, { useState } from 'react'
-import { Button, Modal, Container, Row, Col } from 'react-bootstrap'
+import React, { useState, useEffect } from 'react'
+import { Button, Modal, Container, Row, Col, Spinner } from 'react-bootstrap'
 
 // Takes a string as input. If it matches a pattern for a link, a JSX object is
 // returned with a link. Otherwise the original string is returned.
@@ -29,6 +29,7 @@ function linkIfUrl (url) {
 
 function InfoButton (props) {
   const [show, setShow] = useState(false)
+  const [mutableDataCid, setMutableDataCid] = useState(null)
 
   const handleClose = () => {
     setShow(false)
@@ -44,6 +45,33 @@ function InfoButton (props) {
   url = linkIfUrl(props.token.url)
 
   // console.log('props.token: ', props.token)
+
+  // Get Cid from url
+  const parseCid = (url) => {
+    // get the cid from the url format 'ipfs://bafybeicem27xbzs65uvbcgykcmscsgln3lmhbfrcoec3gdttkdgtxv5acq
+    if (url && url.includes('ipfs://')) {
+      const cid = url.split('ipfs://')[1]
+      return cid
+    }
+    return url
+  }
+  // Get token user data if it exists and verify if it contains media or markdown
+  useEffect(() => {
+    try {
+      console.log('props  token', props.token)
+      const userDataStr = props.token.tokenData.userData
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr)
+
+        // If user data contains media or markdown, set the mutable data cid
+        if (userData?.media || userData?.markdown) {
+          setMutableDataCid(parseCid(props.token.tokenData.mutableData))
+        }
+      }
+    } catch (error) {
+      // Do nothing
+    }
+  }, [props.token, show])
 
   return (
     <>
@@ -87,6 +115,25 @@ function InfoButton (props) {
               <Col xs={4}><b>URL</b>:</Col>
               <Col xs={8}>{url}</Col>
             </Row>
+            {!props.token.iconAlreadyDownloaded && (
+              <div className='text-center'>
+                <Spinner animation='border' size='sm' />
+              </div>
+            )}
+            {props.token.iconAlreadyDownloaded && mutableDataCid && (
+              <Row style={{ paddingTop: '10px' }}>
+                <Col xs={4}><b>User Data</b>:</Col>
+                <Col xs={8}>
+                  <Button
+                    href={`/user-data/${props.token.tokenId}#single-view`}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
+                    View User Data
+                  </Button>
+                </Col>
+              </Row>
+            )}
           </Container>
         </Modal.Body>
         <Modal.Footer />

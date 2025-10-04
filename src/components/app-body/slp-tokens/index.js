@@ -15,6 +15,7 @@ import RefreshTokenBalance from './refresh-tokens'
 const SlpTokens = (props) => {
   const [appData, setAppData] = useState(props.appData)
   const [iconsAreLoaded, setIconsAreLoaded] = useState(false)
+  const [dataAreLoaded, setDataAreLoaded] = useState(false)
   const [tokens, setTokens] = useState([])
 
   const refreshTokenButtonRef = React.useRef()
@@ -44,37 +45,68 @@ const SlpTokens = (props) => {
     return url
   }
 
+  //  This function loads the token data .
+  const lazyLoadTokenData = useCallback(async (tokens) => {
+    try {
+      setDataAreLoaded(false)
+      // map each token and fetch the token data
+      for (let i = 0; i < tokens.length; i++) {
+        const thisToken = tokens[i]
+
+        // data does not  need to be downloaded, so continue with the next one
+        if (thisToken.dataAlreadyDownloaded) continue
+
+        // Try to get token data.
+        const tokenData = await appData.wallet.getTokenData(thisToken.tokenId)
+        console.log('tokenData', tokenData)
+        if (tokenData) {
+          // Set data to the token object , this can be used to display the token name in the token card component.
+          thisToken.tokenData = tokenData
+        }
+
+        // Mark token to prevent fetch token data again.
+        thisToken.dataAlreadyDownloaded = true
+      }
+
+      setDataAreLoaded(true)
+    } catch (error) {
+      setDataAreLoaded(true)
+    }
+  }, [appData])
+
   // Fetch mutable data if it exist and get the token icon url
-  const fetchTokenIcon = useCallback(async (token) => {
+  const fetchTokenMutableData = useCallback(async (token) => {
     try {
       // Get the token data
-      const tokenData = await appData.wallet.getTokenData(token.tokenId)
+      const tokenData = token.tokenData
+
       if (!tokenData.mutableData) return false // Return false if no mutable data
+
       // Get the token icon from the mutable data
       const cid = parseCid(tokenData.mutableData)
       console.log('mutable data cid', cid)
 
       const { json } = await appData.wallet.cid2json({ cid })
-
+      console.log('json: ', json)
       if (!json) return false
 
-      const iconUrl = json.tokenIcon
+      let iconUrl = json.tokenIcon
+
+      if (json.fullSizedUrl && json.fullSizedUrl.includes('http')) {
+        iconUrl = json.fullSizedUrl
+      }
+      const userData = json.userData
       // Return icon url
-      return iconUrl
+      return { iconUrl, userData }
     } catch (error) {
       return false
     }
   }, [appData])
 
   //  This function loads the token icons from the ipfs gateways.
-  const lazyLoadTokenIcons = useCallback(async () => {
+  const lazyLoadMutableData = useCallback(async (tokens) => {
     try {
       setIconsAreLoaded(false)
-
-      const tokens = appData.bchWalletState.slpTokens
-
-      setTokens(tokens) // update token state
-
       // map each token and fetch the icon url
       for (let i = 0; i < tokens.length; i++) {
         const thisToken = tokens[i]
@@ -83,28 +115,35 @@ const SlpTokens = (props) => {
         if (thisToken.iconAlreadyDownloaded) continue
 
         // Try to get token icon url from mutable data.
-        const iconUrl = await fetchTokenIcon(thisToken)
+        const { iconUrl, userData } = await fetchTokenMutableData(thisToken)
         console.log('iconUrl', iconUrl)
         if (iconUrl) {
           // Set the icon url to the token , this can be used to display the icon in the token card component.
           thisToken.icon = iconUrl
+          thisToken.tokenData.userData = userData
         }
 
         // Mark token to prevent fetch token icon again.
         thisToken.iconAlreadyDownloaded = true
       }
 
-      appData.updateBchWalletState({ walletObj: { slpTokens: tokens }, appData })
       setIconsAreLoaded(true)
     } catch (error) {
       setIconsAreLoaded(true)
     }
-  }, [appData, fetchTokenIcon])
+  }, [fetchTokenMutableData])
+
+  const loadData = useCallback(async () => {
+    const tokens = appData.bchWalletState.slpTokens
+    setTokens(tokens)
+    await lazyLoadTokenData(tokens)
+    await lazyLoadMutableData(tokens)
+  }, [appData, lazyLoadTokenData, lazyLoadMutableData])
 
   // Start to load the token icons when the component is mounted
   useEffect(() => {
-    lazyLoadTokenIcons()
-  }, [lazyLoadTokenIcons])
+    loadData()
+  }, [loadData])
 
   // Generate the token cards for each token in the wallet.
   const generateCards = () => {
@@ -127,7 +166,7 @@ const SlpTokens = (props) => {
             <RefreshTokenBalance
               appData={appData}
               ref={refreshTokenButtonRef}
-              lazyLoadTokenIcons={lazyLoadTokenIcons}
+              lazyLoadTokenIcons={loadData}
             />
           </Col>
           <Col xs={6} style={{ textAlign: 'right' }}>
@@ -138,8 +177,16 @@ const SlpTokens = (props) => {
         </Row>
         <Row>
           <Col xs={12} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {
-              !iconsAreLoaded && (
+            {/** Show spinner info if tokens are loaded but data is not loaded */
+              !dataAreLoaded && (
+                <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
+                  <span style={{ marginRight: '10px' }}>Loading Token Data </span>
+                  <Spinner animation='border' />
+                </div>
+              )
+            }
+            {/** Show spinner info if tokens are loaded but icons are not loaded */
+              dataAreLoaded && !iconsAreLoaded && (
                 <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
                   <span style={{ marginRight: '10px' }}>Loading Token Icons </span>
                   <Spinner animation='border' />

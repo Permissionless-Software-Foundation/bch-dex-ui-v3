@@ -8,7 +8,7 @@ import axios from 'axios'
 import TokenCard from '../../nfts-for-sale/token-card'
 
 function NFTForSale (props) {
-  const { appData, npub } = props
+  const { appData, profileAddresses } = props
 
   const [offers, setOffers] = useState([])
   const [offersAreLoaded, setOffersAreLoaded] = useState(false)
@@ -16,16 +16,8 @@ function NFTForSale (props) {
   const [dataAreLoaded, setDataAreLoaded] = useState(false)
   const [startAsync, setStartAsync] = useState(false)
 
-  const getAddressByNpub = useCallback(async () => {
-    const url = `${config.dexServer}/sm/npub/${npub}`
-    const response = await axios.get(url)
-    const addr = response.data.bchAddr
-    return addr
-  }, [npub])
-
   // Handler for refresh button
   const handleRefresh = () => {
-    console.log('handle refresh')
     loadNftOffers()
   }
 
@@ -52,8 +44,10 @@ function NFTForSale (props) {
   const getNftOffers = useCallback(async (page = 0) => {
     try {
       setOffersAreLoaded(false)
-      const addr = await getAddressByNpub(npub)
-      const url = `${config.dexServer}/offer/list/addr/${addr}`
+      const { bchAddr } = profileAddresses
+      if (!bchAddr) return
+
+      const url = `${config.dexServer}/offer/list/addr/${bchAddr}`
       const result = await axios.get(url)
       const rawOffers = result.data
       console.log('rawOffers: ', rawOffers)
@@ -74,7 +68,7 @@ function NFTForSale (props) {
       setOffersAreLoaded(true)
       throw err
     }
-  }, [processTokenData, getAddressByNpub, npub])
+  }, [processTokenData, profileAddresses])
 
   //  This function loads the token data .
   const lazyLoadTokenData = useCallback(async (tokens) => {
@@ -199,6 +193,7 @@ function NFTForSale (props) {
   // Main function to load NFT offers
   const loadNftOffers = useCallback(async () => {
     try {
+      if (!profileAddresses?.bchAddr) return
       // Get tokens in offers
       const offers = await getNftOffers()
       console.log('offers: ', offers)
@@ -216,7 +211,7 @@ function NFTForSale (props) {
     } catch (err) {
       console.error('Error loading NFT offers:', err)
     }
-  }, [lazyLoadTokenData, lazyLoadMutableData, getNftOffers, reviewNftCachedData, updateNFTCachedData])
+  }, [lazyLoadTokenData, lazyLoadMutableData, getNftOffers, reviewNftCachedData, updateNFTCachedData, profileAddresses])
 
   // Effect to load NFTs on component mount
   useEffect(() => {

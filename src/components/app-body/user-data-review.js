@@ -7,12 +7,14 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { Container, Row, Col, Spinner, Carousel } from 'react-bootstrap'
 import ReactMarkdown from 'react-markdown'
+import '../../App.css'
 
 function UserDataReview (props) {
   const appData = props.appData
   const [media, setMedia] = useState([])
   const [markdown, setMarkdown] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(null)
   const [tokenData, setTokenData] = useState(null)
   // Get the id parameter from the URL
@@ -21,6 +23,8 @@ function UserDataReview (props) {
   useEffect(() => {
     const loadData = async () => {
       try {
+        if (loaded) return
+        if (!appData.wallet) return
         const tokenData = await appData.wallet.getTokenData(tokenId)
 
         setTokenData(tokenData)
@@ -38,13 +42,15 @@ function UserDataReview (props) {
           setMedia(userData.media)
           setMarkdown(userData.markdown)
         }
+        setLoaded(true)
       } catch (error) {
+        setLoaded(true)
         setError(error.message)
       }
       setLoading(false)
     }
     loadData()
-  }, [tokenId, appData.wallet])
+  }, [tokenId, appData.wallet, loaded])
 
   // Get Cid from url
   const parseCid = (url) => {
@@ -108,7 +114,7 @@ function UserDataReview (props) {
               {/** Markdown Content */}
               {markdown
                 ? (
-                  <div className='markdown-content my-5 text-center'>
+                  <div className='markdown-content my-5'>
                     <ReactMarkdown>{markdown}</ReactMarkdown>
                   </div>
                   )
