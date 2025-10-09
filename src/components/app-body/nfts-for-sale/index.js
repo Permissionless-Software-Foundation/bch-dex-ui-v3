@@ -33,11 +33,21 @@ function NftsForSale (props) {
   const [offersAreLoaded, setOffersAreLoaded] = useState(false)
   const [iconsAreLoaded, setIconsAreLoaded] = useState(false)
   const [dataAreLoaded, setDataAreLoaded] = useState(false)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
-  // Handler for refresh button
-  const handleRefresh = () => {
-    console.log('handling refresh')
-    loadNftOffers()
+  // Handler for previous page
+  const handlePreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  // Handler for next page
+  const handleNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1)
+    }
   }
 
   // Function to process token data
@@ -65,8 +75,9 @@ function NftsForSale (props) {
       setOffersAreLoaded(false)
 
       const result = await axios.get(`${SERVER}/offer/list/nft/${page}`)
-      const rawOffers = result.data
+      const rawOffers = result.data.data
       console.log('rawOffers: ', rawOffers)
+      setTotalPages(result.data.pagination.totalPages)
 
       // Process each offer
       const processedOffers = []
@@ -207,11 +218,11 @@ function NftsForSale (props) {
   }, [appData])
 
   // Main function to load NFT offers
-  const loadNftOffers = useCallback(async () => {
+  const loadNftOffers = useCallback(async (page = 0) => {
     try {
       setIsLoading(true)
       // Get tokens in offers
-      const offers = await getNftOffers()
+      const offers = await getNftOffers(page)
       console.log('offers: ', offers)
       // Review cached data to populate token data from cached data
       await reviewNftCachedData(offers)
@@ -236,6 +247,21 @@ function NftsForSale (props) {
     console.log('loading nfts for sale')
     loadNftOffers()
   }, [loadNftOffers])
+
+  // Effect to reload data when page changes
+  useEffect(() => {
+    if (currentPage >= 0) {
+      console.log('page changed, reloading nfts for sale')
+      loadNftOffers(currentPage)
+    }
+  }, [currentPage, loadNftOffers])
+
+  // Handler for refresh button
+  const handleRefresh = useCallback(() => {
+    console.log('handling refresh')
+
+    loadNftOffers(currentPage)
+  }, [currentPage, loadNftOffers])
 
   // Get Cid from url
   const parseCid = (url) => {
@@ -309,6 +335,121 @@ function NftsForSale (props) {
             </Button>
           </Col>
         </Row>
+      )}
+
+      {/* Pagination Controls */}
+      {offersAreLoaded && totalPages > 1 && (
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '70px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '25px',
+            padding: '12px 20px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            minWidth: '280px',
+            justifyContent: 'center'
+          }}
+        >
+          <Button
+            variant='outline-primary'
+            size='sm'
+            onClick={handlePreviousPage}
+            disabled={currentPage === 0}
+            style={{
+              borderRadius: '20px',
+              padding: '8px 16px',
+              border: '2px solid #007bff',
+              background: currentPage === 0 ? 'transparent' : '#007bff',
+              color: currentPage === 0 ? '#6c757d' : 'white',
+              fontWeight: '500',
+              fontSize: '14px',
+              transition: 'all 0.3s ease',
+              minWidth: '80px',
+              opacity: currentPage === 0 ? 0.5 : 1,
+              cursor: currentPage === 0 ? 'not-allowed' : 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              if (currentPage > 0) {
+                e.target.style.background = '#0056b3'
+                e.target.style.transform = 'translateY(-1px)'
+                e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentPage > 0) {
+                e.target.style.background = '#007bff'
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = 'none'
+              }
+            }}
+          >
+            ← Previous
+          </Button>
+
+          <div 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#495057'
+            }}
+          >
+            <span style={{ color: '#007bff', fontWeight: '600' }}>
+              {currentPage + 1}
+            </span>
+            <span style={{ color: '#6c757d' }}>of</span>
+            <span style={{ color: '#495057', fontWeight: '600' }}>
+              {totalPages}
+            </span>
+          </div>
+
+          <Button
+            variant='outline-primary'
+            size='sm'
+            onClick={handleNextPage}
+            disabled={currentPage >= totalPages - 1}
+            style={{
+              borderRadius: '20px',
+              padding: '8px 16px',
+              border: '2px solid #007bff',
+              background: currentPage >= totalPages - 1 ? 'transparent' : '#007bff',
+              color: currentPage >= totalPages - 1 ? '#6c757d' : 'white',
+              fontWeight: '500',
+              fontSize: '14px',
+              transition: 'all 0.3s ease',
+              minWidth: '80px',
+              opacity: currentPage >= totalPages - 1 ? 0.5 : 1,
+              cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              if (currentPage < totalPages - 1) {
+                e.target.style.background = '#0056b3'
+                e.target.style.transform = 'translateY(-1px)'
+                e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentPage < totalPages - 1) {
+                e.target.style.background = '#007bff'
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = 'none'
+              }
+            }}
+          >
+            Next →
+          </Button>
+        </div>
       )}
 
       {!offersAreLoaded && (
