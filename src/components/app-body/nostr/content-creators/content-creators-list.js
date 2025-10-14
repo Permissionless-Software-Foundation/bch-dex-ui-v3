@@ -11,14 +11,13 @@
 */
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Container, Spinner, Dropdown } from 'react-bootstrap'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faFilter } from '@fortawesome/free-solid-svg-icons'
+import { Container, Spinner } from 'react-bootstrap'
 import axios from 'axios'
 
 // Local libraries
 import config from '../../../../config'
 import ContentCard from './content-card'
+import FilterDropdown from './filter-dropdown'
 
 // Global variables and constants
 const SERVER = config.dexServer
@@ -101,24 +100,10 @@ function ContentCreators (props) {
       </div>
 
       <div className='mb-4 d-flex justify-content-end'>
-        <Dropdown>
-          <Dropdown.Toggle variant='outline-secondary' className='d-flex align-items-center gap-2'>
-            <FontAwesomeIcon icon={faFilter} />
-            <span>{selectedFilter}</span>
-          </Dropdown.Toggle>
-
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => setSelectedFilter('Most Followers')}>
-              Most Followers
-            </Dropdown.Item>
-            <Dropdown.Item onClick={() => setSelectedFilter('Most Tokens')}>
-              Most Tokens
-            </Dropdown.Item>
-            <Dropdown.Item onClick={() => setSelectedFilter('Most Likes')}>
-              Most Likes
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
+        <FilterDropdown
+          selectedFilter={selectedFilter}
+          setSelectedFilter={setSelectedFilter}
+        />
       </div>
 
       {!loaded && (

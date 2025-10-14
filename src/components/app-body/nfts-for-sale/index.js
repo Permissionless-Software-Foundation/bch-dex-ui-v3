@@ -20,6 +20,7 @@ import { faRedo } from '@fortawesome/free-solid-svg-icons'
 // Local libraries
 import config from '../../../config'
 import TokenCard from './token-card'
+import FilterDropdown from './filter-dropdown'
 
 // Global variables and constants
 const SERVER = config.dexServer
@@ -35,6 +36,7 @@ function NftsForSale (props) {
   const [dataAreLoaded, setDataAreLoaded] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  const [selectedFilter, setSelectedFilter] = useState('Misc')
 
   // Handler for previous page
   const handlePreviousPage = () => {
@@ -304,6 +306,9 @@ function NftsForSale (props) {
         <Col>
           <h1>NFTs for Sale</h1>
         </Col>
+        <Col className='d-flex justify-content-end'>
+          <FilterDropdown selectedFilter={selectedFilter} setSelectedFilter={setSelectedFilter} />
+        </Col>
       </Row>
       <Row>
         <Col xs={12} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -339,7 +344,7 @@ function NftsForSale (props) {
 
       {/* Pagination Controls */}
       {offersAreLoaded && totalPages > 1 && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             bottom: '70px',
@@ -395,7 +400,7 @@ function NftsForSale (props) {
             ← Previous
           </Button>
 
-          <div 
+          <div
             style={{
               display: 'flex',
               alignItems: 'center',
