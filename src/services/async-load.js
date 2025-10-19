@@ -90,6 +90,11 @@ class AsyncLoad {
   // Get the BCH balance of the wallet.
   async getWalletBchBalance (wallet, updateBchWalletState, appData) {
     try {
+      /* // Force error for development
+            await sleep(6000)
+            throw new Error('getWalletBchBalance error')
+             */
+
       // Get the BCH balance of the wallet.
       const bchBalance = await wallet.getBalance({ bchAddress: wallet.walletInfo.cashAddress })
 
@@ -125,6 +130,10 @@ class AsyncLoad {
   // Get a list of SLP tokens held by the wallet.
   async getSlpTokenBalances (wallet, updateBchWalletState, appData) {
     try {
+      /*    // Force error for development
+            await sleep(6000)
+            throw new Error('getSlpTokenBalances error')
+            */
       // Get token information from the wallet. This will also initialize the UTXO store.
       const slpTokens = await wallet.listTokens(wallet.walletInfo.cashAddress)
       // console.log('slpTokens: ', slpTokens)

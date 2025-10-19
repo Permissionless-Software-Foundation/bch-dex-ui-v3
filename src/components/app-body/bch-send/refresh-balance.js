@@ -50,6 +50,9 @@ export default function RefreshBchBalance (props) {
       // Get the latest balance of the wallet.
       const newBalance = await wallet.getBalance({ bchAddress: cashAddr })
 
+      // if bchInitLoaded is 'false', them set as true , to show the new balance.
+      appData.updateBackGroundInitState({ bchInitLoaded: true })
+
       addToModal('Updating BCH per USD price...')
       const bchUsdPrice = await wallet.getUsd()
 

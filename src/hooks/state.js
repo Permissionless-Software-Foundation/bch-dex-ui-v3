@@ -57,6 +57,10 @@ function useAppState () {
   const [denyClose, setDenyClose] = useState(false)
   const [userData, setUserData] = useState(lsState.userData)
   const [isSingleView, setIsSingleView] = useState(false)
+  // Background process state
+  const [asyncBackGroundInitState, setAsyncBackGroundInitState] = useState({
+    bchInitLoaded: false, slpInitLoaded: false, asyncBackgroundFinished: false
+  })
 
   // NFTs for sale stored data to improve performance
   const [nftForSaleCacheData, setNftForSaleCacheData] = useState(lsState.nftData || {})
@@ -163,6 +167,7 @@ function useAppState () {
     setNftForSaleCacheData(allCacheData) // Update the state
     updateLocalStorage({ nftData: allCacheData }) // Update the local storage
   }
+
   // Update relays data
   function updateRelaysData (relaysData) {
     setRelaysData(relaysData)
@@ -177,6 +182,7 @@ function useAppState () {
     console.log('writeRelays: ', writeRelays)
     nostrQueriesRef.current = new NostrQueries({ relays: readRelays })
   }
+
   // Restore relays data
   function restoreRelaysData () {
     const relaysData = [...localStorageDefault.relays] // Create a new array  in order to detect changes
@@ -191,6 +197,25 @@ function useAppState () {
     setWriteRelays(writeRelays)
     console.log('writeRelays: ', writeRelays)
     nostrQueriesRef.current = new NostrQueries({ relays: readRelays })
+  }
+
+  // Update background state
+  function updateBackGroundInitState (inObj = {}) {
+    try {
+      setAsyncBackGroundInitState(oldState => {
+        // console.log('background old state: ', oldState)
+
+        const state = Object.assign({}, oldState, inObj)
+        // console.log('background state: ', state)
+
+        return state
+      })
+
+    // console.log(`New wallet state: ${JSON.stringify(bchWalletState, null, 2)}`)
+    } catch (err) {
+      console.error('Error in App.js updateBackGroundInitState()')
+      throw err
+    }
   }
 
   return {
@@ -250,7 +275,9 @@ function useAppState () {
     readRelays,
     writeRelays,
     startChannelChat,
-    setStartChannelChat
+    setStartChannelChat,
+    asyncBackGroundInitState,
+    updateBackGroundInitState
   }
 }
 

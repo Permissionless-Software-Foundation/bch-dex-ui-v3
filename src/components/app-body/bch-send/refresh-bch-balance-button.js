@@ -16,6 +16,10 @@ import RefreshBchBalance from './refresh-balance'
 function RefreshBchBalanceButton (props) {
   // Dependency injections of props
   const appData = props.appData
+  const { bchInitLoaded, asyncBackgroundFinished } = appData.asyncBackGroundInitState
+
+  // Background bch data loaded finished
+  const backgroundDataLoaded = bchInitLoaded || asyncBackgroundFinished
 
   // Child function references
   const refreshBchBalanceRef = useRef()
@@ -28,7 +32,7 @@ function RefreshBchBalanceButton (props) {
 
   return (
     <>
-      <Button variant='success' onClick={() => { handleButtonRefreshBalance(appData) }}>
+      <Button variant='success' onClick={() => { handleButtonRefreshBalance(appData) }} disabled={!backgroundDataLoaded}>
         <FontAwesomeIcon icon={faRedo} size='lg' /> Refresh
       </Button>
 

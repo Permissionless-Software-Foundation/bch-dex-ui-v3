@@ -15,6 +15,7 @@ import RefreshBchBalance from './refresh-balance'
 function SendCard (props) {
   // Dependency injection through props
   const appData = props.appData
+  const { bchInitLoaded, asyncBackgroundFinished } = appData.asyncBackGroundInitState
 
   // Modal State
   const [modalBody, setModalBody] = useState([])
@@ -28,6 +29,9 @@ function SendCard (props) {
   const [amountUnits, setAmountUnits] = useState('USD')
   const [oppositeUnits, setOppositeUnits] = useState('BCH')
   const [oppositeQty, setOppositeQty] = useState(0)
+
+  // Background bch data loaded finished
+  const backgroundDataLoaded = bchInitLoaded || asyncBackgroundFinished
 
   // Child function references
   const refreshBchBalanceRef = useRef()
@@ -318,7 +322,7 @@ function SendCard (props) {
 
             <Row>
               <Col style={{ textAlign: 'center' }}>
-                <Button onClick={(e) => handleSendBch({ sendCardData, appData })}>Send</Button>
+                <Button onClick={(e) => handleSendBch({ sendCardData, appData })} disabled={!backgroundDataLoaded}>Send</Button>
               </Col>
             </Row>
 

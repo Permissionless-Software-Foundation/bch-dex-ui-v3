@@ -21,7 +21,7 @@ export function UninitializedView (props = {}) {
       />
       {
         appData.asyncInitFinished
-          ? <AppBody menuState={100} wallet={appData.wallet} appData={appData} />
+          ? <> <br /><AppBody menuState={100} wallet={appData.wallet} appData={appData} /></>
           : null
       }
     </>

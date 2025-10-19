@@ -14,8 +14,8 @@ function SignMessage (props) {
 
   const [sign, setSign] = useState('')
   const [msg, setMsg] = useState('')
-  const [bchAddr] = useState(wallet.walletInfo.cashAddress)
-  const [slpAddr] = useState(wallet.walletInfo.slpAddress)
+  const [bchAddr] = useState(wallet?.walletInfo?.cashAddress)
+  const [slpAddr] = useState(wallet?.walletInfo?.slpAddress)
   const [err, setErr] = useState('')
   const [copied, setCopied] = useState(false)
 

@@ -18,6 +18,10 @@ function RefreshTokenBalance ({ appData: initialAppData, ref, lazyLoadTokenIcons
   const [modalBody, setModalBody] = useState([])
   const [hideSpinner, setHideSpinner] = useState(false)
   const [hideWaitingModal, setHideWaitingModal] = useState(true)
+  const { slpInitLoaded, asyncBackgroundFinished } = initialAppData.asyncBackGroundInitState
+
+  // Background bch data loaded finished
+  const backgroundDataLoaded = slpInitLoaded || asyncBackgroundFinished
 
   // Add a new line to the waiting modal.
   const addToModal = (inStr) => {
@@ -58,6 +62,10 @@ function RefreshTokenBalance ({ appData: initialAppData, ref, lazyLoadTokenIcons
       appData.updateBchWalletState({ walletObj: walletState, appData })
 
       const newAppData = { ...appData, bchWalletState: walletState }
+
+      // if slpInitLoaded is 'false', them set as true , to show the new balance.
+      appData.updateBackGroundInitState({ slpInitLoaded: true })
+
       // Update state
       setHideWaitingModal(true)
       setAppData(newAppData)
@@ -82,7 +90,7 @@ function RefreshTokenBalance ({ appData: initialAppData, ref, lazyLoadTokenIcons
 
   return (
     <>
-      <Button variant='success' onClick={handleRefreshTokenBalance}>
+      <Button variant='success' onClick={handleRefreshTokenBalance} disabled={!backgroundDataLoaded}>
         <FontAwesomeIcon icon={faRedo} size='lg' /> Refresh
       </Button>
 

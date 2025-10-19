@@ -13,12 +13,17 @@ import TokenCard from './token-card'
 import RefreshTokenBalance from './refresh-tokens'
 
 const SlpTokens = (props) => {
-  const [appData, setAppData] = useState(props.appData)
+  const { appData } = props
   const [iconsAreLoaded, setIconsAreLoaded] = useState(false)
   const [dataAreLoaded, setDataAreLoaded] = useState(false)
   const [tokens, setTokens] = useState([])
 
   const refreshTokenButtonRef = React.useRef()
+  const { slpInitLoaded, asyncBackgroundFinished } = props.appData.asyncBackGroundInitState
+
+  // Background bch data loaded finished
+  const backgroundDataLoaded = slpInitLoaded || asyncBackgroundFinished
+  const backgroundDataError = !slpInitLoaded && asyncBackgroundFinished
 
   // Update the tokens state when the appData changes
   useEffect(() => {
@@ -31,8 +36,7 @@ const SlpTokens = (props) => {
   // within the wallet app.
   // This function triggers the on-click function within the refresh-tokens.js button.
   const refreshTokens = async () => {
-    const newAppData = await refreshTokenButtonRef.current.handleRefreshTokenBalance()
-    setAppData(newAppData)
+    await refreshTokenButtonRef.current.handleRefreshTokenBalance()
   }
 
   // Get Cid from url
@@ -135,6 +139,7 @@ const SlpTokens = (props) => {
 
   const loadData = useCallback(async () => {
     const tokens = appData.bchWalletState.slpTokens
+    console.log('tokens', tokens)
     setTokens(tokens)
     await lazyLoadTokenData(tokens)
     await lazyLoadMutableData(tokens)
@@ -142,8 +147,10 @@ const SlpTokens = (props) => {
 
   // Start to load the token icons when the component is mounted
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    if (slpInitLoaded) {
+      loadData()
+    }
+  }, [loadData, slpInitLoaded])
 
   // Generate the token cards for each token in the wallet.
   const generateCards = () => {
@@ -176,25 +183,35 @@ const SlpTokens = (props) => {
           </Col>
         </Row>
         <Row>
-          <Col xs={12} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            {/** Show spinner info if tokens are loaded but data is not loaded */
-              !dataAreLoaded && (
-                <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
-                  <span style={{ marginRight: '10px' }}>Loading Token Data </span>
-                  <Spinner animation='border' />
-                </div>
-              )
-            }
-            {/** Show spinner info if tokens are loaded but icons are not loaded */
-              dataAreLoaded && !iconsAreLoaded && (
-                <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
-                  <span style={{ marginRight: '10px' }}>Loading Token Icons </span>
-                  <Spinner animation='border' />
-                </div>
-              )
-            }
+          {appData.asyncInitSucceeded && (
+            <Col xs={12} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {/** Show spinner info if tokens are loaded but data is not loaded */
+             !backgroundDataLoaded && !backgroundDataError && (
+               <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
+                 <span style={{ marginRight: '10px' }}>Loading Tokens </span>
+                 <Spinner animation='border' />
+               </div>
+             )
+           }
+              {/** Show spinner info if tokens are loaded but data is not loaded */
+             !backgroundDataError && !dataAreLoaded && tokens.length > 0 && (
+               <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
+                 <span style={{ marginRight: '10px' }}>Loading Token Data </span>
+                 <Spinner animation='border' />
+               </div>
+             )
+           }
+              {/** Show spinner info if tokens are loaded but icons are not loaded */
+             backgroundDataLoaded && dataAreLoaded && !iconsAreLoaded && (
+               <div style={{ borderRadius: '10px', backgroundColor: '#f0f0f0', padding: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'fit-content' }}>
+                 <span style={{ marginRight: '10px' }}>Loading Token Icons </span>
+                 <Spinner animation='border' />
+               </div>
+             )
+           }
 
-          </Col>
+            </Col>
+          )}
         </Row>
         <br />
 
@@ -202,9 +219,14 @@ const SlpTokens = (props) => {
           {generateCards()}
         </Row>
         {/** Display a message if no tokens are found */}
-        {tokens.length === 0 && (
+        {backgroundDataLoaded && !backgroundDataError && tokens.length === 0 && (
           <Row className='text-center'>
             <span> No tokens found in wallet </span>
+          </Row>
+        )}
+        {backgroundDataError && (
+          <Row style={{ color: 'red' }} className='text-center'>
+            <span>Tokens could not be loaded! </span>
           </Row>
         )}
 
