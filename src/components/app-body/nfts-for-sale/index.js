@@ -11,7 +11,7 @@
 */
 
 // Global npm libraries
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Container, Row, Col, Button, Spinner } from 'react-bootstrap'
 import axios from 'axios'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -35,8 +35,12 @@ function NftsForSale (props) {
   const [iconsAreLoaded, setIconsAreLoaded] = useState(false)
   const [dataAreLoaded, setDataAreLoaded] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
+  const [lastLoadedPage, setLastLoadedPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedFilter, setSelectedFilter] = useState('Misc')
+
+  // Flag to prevent load data multiple times on component mount!
+  const componentMountRef = useRef(false)
 
   // Handler for previous page
   const handlePreviousPage = () => {
@@ -70,6 +74,20 @@ function NftsForSale (props) {
       return offer
     }
   }, [appData])
+  // Function to process token metadata (iconUrl , userData).
+  const processOfferMetadata = useCallback(async (offer) => {
+    try {
+      // Token icon
+      if (offer.tokenIconUrl) {
+        offer.icon = offer.tokenIconUrl
+        offer.iconAlreadyDownloaded = true
+        offer.userData = JSON.parse(offer.userDataStr)
+      }
+      return offer
+    } catch (error) {
+      return offer
+    }
+  }, [])
 
   //  Fetch offers
   const getNftOffers = useCallback(async (page = 0) => {
@@ -86,7 +104,8 @@ function NftsForSale (props) {
       for (let i = 0; i < rawOffers.length; i++) {
         const offer = rawOffers[i]
         const processedOffer = await processTokenData(offer)
-        processedOffers.push(processedOffer)
+        const processedOfferMetadata = await processOfferMetadata(processedOffer)
+        processedOffers.push(processedOfferMetadata)
       }
 
       setOffersAreLoaded(true)
@@ -97,7 +116,7 @@ function NftsForSale (props) {
       setOffersAreLoaded(true)
       throw err
     }
-  }, [processTokenData])
+  }, [processTokenData, processOfferMetadata])
 
   //  This function loads the token data .
   const lazyLoadTokenData = useCallback(async (tokens) => {
@@ -166,6 +185,7 @@ function NftsForSale (props) {
         const thisToken = tokens[i]
 
         // Incon does not  need to be downloaded, so continue with the next one
+        console.log('Icon already downloaded  ', thisToken.iconAlreadyDownloaded)
         if (thisToken.iconAlreadyDownloaded) continue
 
         // Try to get token icon url from mutable data.
@@ -174,7 +194,7 @@ function NftsForSale (props) {
         if (iconUrl) {
           // Set the icon url to the token , this can be used to display the icon in the token card component.
           thisToken.icon = iconUrl
-          thisToken.tokenData.userData = userData
+          thisToken.userData = userData
         }
 
         // Mark token to prevent fetch token icon again.
@@ -246,17 +266,23 @@ function NftsForSale (props) {
 
   // Effect to load NFTs on component mount
   useEffect(() => {
-    console.log('loading nfts for sale')
-    loadNftOffers()
+    // Peevent to run multiple times
+    if (!componentMountRef.current) {
+      console.log('loading nfts for sale')
+      loadNftOffers()
+      componentMountRef.current = true
+    }
   }, [loadNftOffers])
 
   // Effect to reload data when page changes
   useEffect(() => {
-    if (currentPage >= 0) {
+    // Validate to prevent load same page again
+    if (currentPage >= 0 && currentPage !== lastLoadedPage) {
       console.log('page changed, reloading nfts for sale')
       loadNftOffers(currentPage)
+      setLastLoadedPage(currentPage)
     }
-  }, [currentPage, loadNftOffers])
+  }, [currentPage, loadNftOffers, lastLoadedPage])
 
   // Handler for refresh button
   const handleRefresh = useCallback(() => {

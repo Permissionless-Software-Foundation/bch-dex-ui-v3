@@ -59,7 +59,7 @@ function InfoButton (props) {
   useEffect(() => {
     try {
       console.log('props  token', props.token)
-      const userDataStr = props.token.tokenData.userData
+      const userDataStr = props.token.userData
       if (userDataStr) {
         const userData = JSON.parse(userDataStr)
 

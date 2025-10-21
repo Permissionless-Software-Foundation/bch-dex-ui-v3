@@ -36,7 +36,7 @@ function InfoButton (props) {
   // Get token user data if it exists and verify if it contains media or markdown
   useEffect(() => {
     try {
-      const userDataStr = props.token.tokenData.userData
+      const userDataStr = props.token.userData
       if (userDataStr) {
         const userData = JSON.parse(userDataStr)
 

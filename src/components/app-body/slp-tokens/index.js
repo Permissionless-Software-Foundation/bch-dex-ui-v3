@@ -124,7 +124,7 @@ const SlpTokens = (props) => {
         if (iconUrl) {
           // Set the icon url to the token , this can be used to display the icon in the token card component.
           thisToken.icon = iconUrl
-          thisToken.tokenData.userData = userData
+          thisToken.userData = userData
         }
 
         // Mark token to prevent fetch token icon again.
