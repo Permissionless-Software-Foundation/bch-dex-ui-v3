@@ -301,8 +301,34 @@ function NftsForSale (props) {
     return url
   }
 
+  const updateOffer = useCallback(async (offer) => {
+    try {
+      if (!offer) return
+      setOffersAreLoaded(false)
+      const processedOffer = await processTokenData(offer)
+      const processedOfferMetadata = await processOfferMetadata(processedOffer)
+
+      setOffers(offers => {
+        // find offer
+        const index = offers.findIndex((val) => { return val.tokenId === offer.tokenId })
+        // Save existing token data
+        processedOfferMetadata.tokenData = offers[index].tokenData
+        // replace with the new data
+        offers[index] = processedOfferMetadata
+        return offers
+      })
+
+      // Re-render tokens cards , to load the new data.
+      setTimeout(() => {
+        setOffersAreLoaded(true)
+      }, 500)
+    } catch (error) {
+      console.warn(error)
+    }
+  }, [processOfferMetadata, processTokenData])
+
   // This function generates a Token Card for each token in the wallet.
-  function generateCards (offers) {
+  const generateCards = useCallback(() => {
     console.log('generateCards() offerData: ', offers)
 
     const tokens = offers
@@ -318,13 +344,14 @@ function NftsForSale (props) {
           token={thisToken}
           handleRefresh={handleRefresh}
           key={`${thisToken.tokenId + i}`}
+          updateOffer={updateOffer}
         />
       )
       tokenCards.push(thisTokenCard)
     }
 
     return tokenCards
-  }
+  }, [offers, appData, handleRefresh, updateOffer])
 
   return (
     <Container>

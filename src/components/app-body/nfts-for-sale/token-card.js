@@ -20,6 +20,7 @@ function TokenCard (props) {
 
   // Update icon state every token.icon and token.tokenData changes
   useEffect(() => {
+    console.log('setting icon')
     setIcon(token.icon)
     setTokenData(token.tokenData)
   }, [token.icon, token.tokenData])
@@ -66,7 +67,7 @@ function TokenCard (props) {
 
               <Row className='text-center'>
                 <Col>
-                  <InfoButton token={token} disabled={!token.tokenData} />
+                  <InfoButton token={token} disabled={!token.tokenData} {...props} />
                 </Col>
 
                 {!hideBuyBtn && (

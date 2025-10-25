@@ -7,11 +7,18 @@
 
 // Global npm libraries
 import React, { useEffect, useState } from 'react'
-import { Button, Modal, Container, Row, Col } from 'react-bootstrap'
+import { Button, Modal, Container, Row, Col, Spinner } from 'react-bootstrap'
+import axios from 'axios'
+
+// Local libraries
+import config from '../../../config'
+// Global variables and constants
+const SERVER = config.dexServer
 
 function InfoButton (props) {
   const [show, setShow] = useState(false)
   const [mutableDataCid, setMutableDataCid] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   const handleClose = () => {
     console.log('handleClose()')
@@ -49,6 +56,22 @@ function InfoButton (props) {
       // Do nothing
     }
   }, [props.token, show])
+
+  // Update offer data
+  const updateOffer = async () => {
+    try {
+      setLoading(true)
+      const inputObj = { tokenId: props.token.tokenId }
+      const result = await axios.post(`${SERVER}/offer/mutable/sync/`, inputObj)
+      const offerData = result.data
+      console.log('offerData: ', offerData)
+
+      if (props.updateOffer) await props.updateOffer(offerData)
+      setLoading(false)
+    } catch (error) {
+      setLoading(false)
+    }
+  }
 
   // Replace with dummy button until token data is loaded.
   if (!props.token.tokenData) {
@@ -105,6 +128,7 @@ function InfoButton (props) {
                     href={`/user-data/${props.token.tokenId}#single-view`}
                     target='_blank'
                     rel='noopener noreferrer'
+                    variant='success'
                   >
                     View User Data
                   </Button>
@@ -114,7 +138,10 @@ function InfoButton (props) {
 
           </Container>
         </Modal.Body>
-        <Modal.Footer />
+        <Modal.Footer style={{ justifyContent: 'center'}}>
+          {!loading && <Button style={{ width: '135px' }} onClick={updateOffer}>Update</Button>}
+          {loading && <Spinner />}
+        </Modal.Footer>
       </Modal>
     </>
   )
