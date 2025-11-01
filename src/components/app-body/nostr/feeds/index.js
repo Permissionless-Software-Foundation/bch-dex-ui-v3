@@ -3,12 +3,17 @@
 */
 
 // Global npm libraries
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Container, Nav, Tab, Spinner } from 'react-bootstrap'
+import axios from 'axios'
 
 // Local libraries
 import Feed from './feed'
 import Following from './following'
+import config from '../../../../config'
+
+// Global variables and constants
+const SERVER = `${config.dexServer}/`
 
 function Feeds (props) {
   const { appData } = props
@@ -17,6 +22,7 @@ function Feeds (props) {
   const [posts, setPosts] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [profiles, setProfiles] = useState({})
+  const [deletedPost, setDeletedPost] = useState([])
 
   // Load data on component mount.
   useEffect(() => {
@@ -49,6 +55,26 @@ function Feeds (props) {
       loadData()
     }
   }, [loaded, appData])
+
+  // Get all deleted chats
+  const fetchDeletedPost = useCallback(async () => {
+    try {
+      const options = {
+        method: 'GET',
+        url: `${SERVER}nostr/deletedPost`
+      }
+      const result = await axios.request(options)
+      const { deletedPosts } = result.data
+      setDeletedPost(deletedPosts)
+    } catch (error) {
+      console.error(error)
+    }
+  }, [])
+
+  // Get deleted post when the component was mounted.
+  useEffect(() => {
+    fetchDeletedPost()
+  }, [fetchDeletedPost])
 
   const onChangeTab = (tab) => {
     setActiveTab(tab)
@@ -86,7 +112,7 @@ function Feeds (props) {
 
             <Tab.Content>
               <Tab.Pane eventKey='feed'>
-                <Feed appData={appData} posts={posts} profiles={profiles} />
+                <Feed appData={appData} posts={posts} profiles={profiles} deletedPost={deletedPost} refreshDeletedPost={fetchDeletedPost} />
               </Tab.Pane>
               <Tab.Pane eventKey='following'>
                 <Following appData={appData} posts={posts} profiles={profiles} />

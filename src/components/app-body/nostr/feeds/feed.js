@@ -14,7 +14,7 @@ function Feed (props) {
     <Container className='mt-4 mb-5' style={{ marginBottom: '50px' }}>
       <div>
         {posts.map((post, index) => (
-          <FeedCard key={index} post={post} appData={props.appData} profiles={profiles} />
+          <FeedCard key={index} post={post} appData={props.appData} profiles={profiles} {...props} />
         ))}
         {!posts.length && (
           <div className='text-center text-muted py-5 bg-light rounded-4 shadow-sm'>

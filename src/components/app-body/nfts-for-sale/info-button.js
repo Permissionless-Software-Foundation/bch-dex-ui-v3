@@ -138,7 +138,7 @@ function InfoButton (props) {
 
           </Container>
         </Modal.Body>
-        <Modal.Footer style={{ justifyContent: 'center'}}>
+        <Modal.Footer style={{ justifyContent: 'center' }}>
           {!loading && <Button style={{ width: '135px' }} onClick={updateOffer}>Update</Button>}
           {loading && <Spinner />}
         </Modal.Footer>

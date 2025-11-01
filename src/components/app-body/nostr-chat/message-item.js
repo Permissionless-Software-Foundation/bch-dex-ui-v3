@@ -9,9 +9,10 @@ import { faUser } from '@fortawesome/free-solid-svg-icons'
 import { Spinner } from 'react-bootstrap'
 import NostrFormat from '../../app-body/nostr/nostr-format'
 import ProfileMenu from './profile-menu'
+import AdminDeleteBtn from './delete-btn'
 
 function MessageItem (props) {
-  const { message, profiles, selectedChannel } = props
+  const { message, profiles, selectedChannel, refreshDeletedChats, deletedChats } = props
   const [profile, setProfile] = useState(null)
 
   const [isDm, setIsDm] = useState(false)
@@ -67,8 +68,10 @@ function MessageItem (props) {
                       className='rounded-circle'
                       style={{ width: '24px', height: '24px' }}
                       onError={(e) => {
-                        e.target.style.display = 'none'
-                        e.target.nextSibling.style.display = 'block'
+                        if (e.target.style) {
+                          e.target.style.display = 'none'
+                          e.target.nextSibling.style.display = 'block'
+                        }
                       }}
                     />
                   </ProfileMenu>
@@ -112,6 +115,18 @@ function MessageItem (props) {
           </div>
           <div style={{ lineHeight: '1.4', wordBreak: 'break-all' }}>
             <NostrFormat content={message.content} />
+            {/** Show btn on kind 42 events. ( Group Messages ) */}
+            {profile && message && message.kind === 42 && (
+              <AdminDeleteBtn
+                npub={profile.npub}
+                pubkey={profile.pubKey}
+                eventId={message.id}
+                deleteType='chat'
+                refreshDeletedData={refreshDeletedChats}
+                deletedData={deletedChats}
+                {...props}
+              />
+            )}
 
           </div>
         </div>

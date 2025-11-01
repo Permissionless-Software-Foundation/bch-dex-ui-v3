@@ -6,11 +6,15 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react'
 import { Container, Row, Col } from 'react-bootstrap'
 import { RelayPool } from 'nostr'
+import axios from 'axios'
 
 // Local libraries
 import ChatSidebar from './chat-sidebar'
 import ChatMain from './chat-main'
 import config from '../../../config'
+
+// Global variables and constants
+const SERVER = `${config.dexServer}/`
 
 function NostrChat (props) {
   const { appData } = props
@@ -27,6 +31,8 @@ function NostrChat (props) {
 
   const [selectedChannel, setSelectedChannel] = useState(null)
   const [selectedChannelIsDm, setSelectedChannelIsDm] = useState(false)
+
+  const [deletedChats, setDeletedChats] = useState([])
 
   const profilesRef = useRef({})
   const dmChannelsRef = useRef([])
@@ -204,7 +210,7 @@ function NostrChat (props) {
     pool.on('event', (relay, subId, ev) => {
       console.log('Group post retrieved from ', relay.url, ev.content)
       const onBlackList = nostrQueries.blackList.find((val) => { return val === ev.pubkey })
-      if (!onBlackList)onMsgRead(ev)
+      if (!onBlackList) onMsgRead(ev)
     })
 
     return () => {
@@ -331,6 +337,7 @@ function NostrChat (props) {
     const loadCurrentDms = async () => {
       const { nostrQueries, bchWalletState } = appData
       const { nostrKeyPair } = bchWalletState
+      if (!nostrKeyPair?.pubHex) return
       const dms = await appData.nostrQueries.getDms(nostrKeyPair.pubHex)
       setDmChannels(currentChs => {
         let newChs = [...currentChs, ...dms]
@@ -400,6 +407,26 @@ function NostrChat (props) {
     loadChData()
   }, [selectedChannel, appData, groupChannels])
 
+  // Get all deleted chats
+  const fetchDeletedChats = useCallback(async () => {
+    try {
+      const options = {
+        method: 'GET',
+        url: `${SERVER}nostr/deletedChat`
+      }
+      const result = await axios.request(options)
+      const { deletedChats } = result.data
+      console.log('deletedChats', deletedChats)
+      setDeletedChats(deletedChats)
+    } catch (error) {
+      console.error(error)
+    }
+  }, [])
+  // Get deleted chats when the component was mounted.
+  useEffect(() => {
+    fetchDeletedChats()
+  }, [fetchDeletedChats])
+
   return (
     <>
       <Container fluid className='h-100 p-0 mb-5 '>
@@ -428,6 +455,8 @@ function NostrChat (props) {
               dmListLoaded={dmListLoaded && channelsLoaded}
               onChangeChannel={onChangeChannel}
               addPrivateMessage={addPrivateMessage}
+              deletedChats={deletedChats}
+              refreshDeletedChats={fetchDeletedChats}
               {...props}
             />
           </Col>

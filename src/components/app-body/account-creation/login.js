@@ -80,6 +80,7 @@ const Login = ({ appData }) => {
 
   const handleSubmit = async (e) => {
     try {
+      console.log('Account creation submit')
       e.preventDefault()
       setOnFetch(true)
       setError('')
@@ -100,7 +101,8 @@ const Login = ({ appData }) => {
           token: user.token,
           email: user.user.email,
           _id: user.user._id,
-          mnemonic: user.user.mnemonic
+          mnemonic: user.user.mnemonic,
+          type: user.user.type
         }
         appData.updateLocalStorage({
           userData

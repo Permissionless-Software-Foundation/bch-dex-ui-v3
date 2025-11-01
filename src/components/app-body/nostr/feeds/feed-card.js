@@ -16,13 +16,12 @@ import { hexToBytes } from '@noble/hashes/utils' // already an installed depende
 // Local libraries
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
 import NostrFormat from '../nostr-format'
+import AdminDeleteBtn from '../../nostr-chat/delete-btn.js'
 
 function FeedCard (props) {
   const { post, appData, profiles } = props
   const { nostrKeyPair, writeRelays } = appData.bchWalletState
-
   const [profile, setProfile] = useState(profiles[post.pubkey])
-
   const [npub, setNpub] = useState('')
   const [isLiked, setIsLiked] = useState(false)
   const [likesCount, setLikesCount] = useState(null)
@@ -250,6 +249,18 @@ function FeedCard (props) {
             <Spinner animation='border' size='sm' className='ms-2' />
           )}
         </div>
+        {/** Show btn on kind 1 events. */}
+        {profile && post && post.kind === 1 && (
+          <AdminDeleteBtn
+            npub={npub}
+            pubkey={post.pubkey}
+            eventId={post.id}
+            deleteType='post'
+            deletedData={props.deletedPost}
+            refreshDeletedData={props.refreshDeletedPost}
+            {...props}
+          />
+        )}
       </Card.Body>
     </Card>
 
