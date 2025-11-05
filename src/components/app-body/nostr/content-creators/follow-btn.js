@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Spinner } from 'react-bootstrap'
 import { finalizeEvent } from 'nostr-tools/pure'
-import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils'
+import NostrRestClient from '../../../../services/nostr-rest-client.js'
 
 function FollowBtn (props) {
   const [onFetch, setOnFetch] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const { creator, appData, creatorProfile, followList, refreshFollowList } = props
+  // Initialize REST client for publishing
+  const restClient = new NostrRestClient()
 
   useEffect(() => {
     const isFollowing = followList.find(item => item[1] === creator.pubkey)
@@ -27,8 +29,8 @@ function FollowBtn (props) {
       if (!existing) {
         const creatorName = creatorProfile.name || ''
 
-        // add creator to the list
-        currentList.push(['p', creator.pubkey, 'wss://nostr-relay.psfoundation.info', creatorName])
+        // add creator to the list (relay URL in tag is optional, REST API handles relay selection)
+        currentList.push(['p', creator.pubkey, '', creatorName])
         await submitFollowList(currentList)
         await refreshFollowList()
       } else {
@@ -73,10 +75,7 @@ function FollowBtn (props) {
       // Convert private key to binary
       const privateKeyBin = hexToBytes(nostrKeyPair.privHex)
 
-      // Relay list
-      const psf = 'wss://nostr-relay.psfoundation.info'
-
-      // Generate a post.
+      // Generate a follow list event.
       const eventTemplate = {
         kind: 3,
         created_at: Math.floor(Date.now() / 1000),
@@ -89,16 +88,14 @@ function FollowBtn (props) {
       const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
       console.log('signedEvent: ', signedEvent)
 
-      // Connect to a relay.
-      const relay = await Relay.connect(psf)
-      console.log(`connected to ${relay.url}`)
-
-      // Publish the message to the relay.
-      const result = await relay.publish(signedEvent)
+      // Publish the follow list via REST API (handles broadcasting to multiple relays)
+      const result = await restClient.publishEvent(signedEvent)
       console.log('result: ', result)
 
-      // Close the connection to the relay.
-      relay.close()
+      if (!result.accepted) {
+        throw new Error(`Failed to publish follow list: ${result.message || 'Unknown error'}`)
+      }
+
       setTimeout(() => {
         setOnFetch(false)
       }, 1000)

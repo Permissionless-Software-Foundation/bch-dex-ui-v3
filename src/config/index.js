@@ -18,6 +18,12 @@ const config = {
   // dexServer: 'http://localhost:5700',
 
   nostrTopic: 'bch-dex-test-topic-02',
+
+  // REST API endpoint for Nostr relay interactions (primary interface)
+  nostrRestApiUrl: 'https://nostr-relay-api.psfoundation.info',
+  // nostrRestApiUrl: 'http://localhost:5942',
+
+  // Legacy relay URLs kept for reference (may be used in tags, but actual connections use REST API)
   nostrRelay: 'wss://nostr-relay.psfoundation.info',
   nostrRelays: [
     'wss://nostr-relay.psfoundation.info',

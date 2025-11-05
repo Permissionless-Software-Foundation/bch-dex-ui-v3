@@ -10,8 +10,8 @@ import { faUser, faHeart as faHeartSolid } from '@fortawesome/free-solid-svg-ico
 import { faHeart } from '@fortawesome/free-regular-svg-icons'
 import * as nip19 from 'nostr-tools/nip19'
 import { finalizeEvent } from 'nostr-tools/pure'
-import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
+import NostrRestClient from '../../../../services/nostr-rest-client.js'
 
 // Local libraries
 import CopyOnClick from '../../bch-wallet/copy-on-click.js'
@@ -20,7 +20,9 @@ import AdminDeleteBtn from '../../nostr-chat/delete-btn.js'
 
 function FeedCard (props) {
   const { post, appData, profiles } = props
-  const { nostrKeyPair, writeRelays } = appData.bchWalletState
+  const { nostrKeyPair } = appData.bchWalletState
+  // Initialize REST client for publishing
+  const restClient = new NostrRestClient()
   const [profile, setProfile] = useState(profiles[post.pubkey])
   const [npub, setNpub] = useState('')
   const [isLiked, setIsLiked] = useState(false)
@@ -102,25 +104,22 @@ function FeedCard (props) {
       }
       console.log(`eventTemplate: ${JSON.stringify(eventTemplate, null, 2)}`)
 
-      writeRelays.map(async (relayUrl) => {
-        try {
-          // Sign the post
-          const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
-          console.log('signedEvent: ', signedEvent)
-          // Connect to a relay.
-          const relay = await Relay.connect(relayUrl)
-          console.log(`connected to ${relay.url}`)
+      // Sign the post
+      const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
+      console.log('signedEvent: ', signedEvent)
 
-          // Publish the message to the relay.
-          const result = await relay.publish(signedEvent)
-          console.log('result: ', result)
+      // Publish the like via REST API (handles broadcasting to multiple relays)
+      try {
+        const result = await restClient.publishEvent(signedEvent)
+        console.log('result: ', result)
 
-          // Close the connection to the relay.
-          relay.close()
-        } catch (err) {
-          console.warn(`Skipping publishing to ${relayUrl} due to error: ${err}`)
+        if (!result.accepted) {
+          throw new Error(`Failed to publish like: ${result.message || 'Unknown error'}`)
         }
-      })
+      } catch (err) {
+        console.warn(`Error publishing like: ${err}`)
+        throw err
+      }
 
       await handleLikes(post, nostrKeyPair.pubHex)
       setLikesFetched(true)

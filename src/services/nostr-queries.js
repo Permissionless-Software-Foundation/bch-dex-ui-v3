@@ -1,26 +1,38 @@
 /**
  *  Nostr class for query into relay pools
- *
+ *  Refactored to use REST API instead of WebSocket
  */
-import { RelayPool } from 'nostr'
+import NostrRestClient, { generateSubId } from './nostr-rest-client.js'
 import * as nip19 from 'nostr-tools/nip19'
 import { nip04 } from 'nostr-tools'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
 import axios from 'axios'
+import config from '../config'
+
+const SERVER = `${config.dexServer}/`
 
 export default class NostrQueries {
   constructor ({ relays }) {
-    this.relays = relays || []
+    // Keep relays property for backward compatibility (empty array)
+    this.relays = []
+
+    // Initialize REST client
+    this.restClient = new NostrRestClient()
 
     this.loadedProfiles = {}
     this.loadedChannelsInfo = {}
     this.blackList = []
     this.blackListFetched = false
+
+    this.deletedChats = []
+    this.deletedPosts = []
   }
 
   async start () {
     try {
       await this.getBlackList()
+      await this.fetchDeletedChats()
+      await this.fetchDeletedPosts()
     } catch (error) {
       console.error('NostrQueries.start() error : ', error.message)
       throw error
@@ -28,7 +40,8 @@ export default class NostrQueries {
   }
 
   setRelays (relays) {
-    this.relays = relays
+    // No-op for backward compatibility (REST API handles relays server-side)
+    this.relays = []
   }
 
   npubToHex (npub) {
@@ -41,160 +54,50 @@ export default class NostrQueries {
     return nip19.npubEncode(hex)
   }
 
-  // Load profile from nostr relays
-  // It uses multiple relays. It will exit after the first successful retrieval
-  // from any relay. If one relay fails, it will move on to the next one.
+  // Load profile from nostr relays via REST API
   async getProfile (pubHex) {
     try {
-      if (this.relays.length === 0) {
-        return false
-      }
       const existingProfile = this.loadedProfiles[pubHex]
       if (existingProfile) {
         console.log(`Returning profile from cache :  ${existingProfile.name}`)
         return existingProfile
       }
 
-      for (let i = 0; i < this.relays.length; i++) {
-        const profile = await new Promise((resolve) => {
-          const relay = this.relays[i]
-          // const pool = RelayPool(config.nostrRelays)
-          const pool = RelayPool([relay])
-          pool.on('open', relay => {
-            relay.subscribe('subid', { limit: 5, kinds: [0], authors: [pubHex] })
-          })
+      const subId = generateSubId('profile')
+      const filter = { limit: 5, kinds: [0], authors: [pubHex] }
 
-          pool.on('eose', relay => {
-            relay.close()
-            resolve(false)
-          })
+      const events = await this.restClient.queryEvents(subId, filter)
 
-          pool.on('event', (relay, subId, ev) => {
-            try {
-              const profile = JSON.parse(ev.content)
-              // console.log('profile', profile)
-              console.log(`Profile found  for ${pubHex} at ${relay.url}`)
-              resolve(profile)
-            } catch (error) {
-              resolve(false)
-            }
-            relay.close()
-          })
-          pool.on('error', (relay) => {
-            console.log(`Error fetching ${pubHex} profile. relay connection error :${relay.url} `)
-            relay.close()
-            resolve(false)
-          })
-        })
-        // Stop looking for profile if found
-        if (profile) {
-          this.loadedProfiles[pubHex] = profile // Store profile
+      // Find the most recent profile event (kind 0 events are replaceable)
+      if (events && events.length > 0) {
+        // Sort by created_at descending to get most recent
+        events.sort((a, b) => b.created_at - a.created_at)
+        const profileEvent = events[0]
+        try {
+          const profile = JSON.parse(profileEvent.content)
+          console.log(`Profile found for ${pubHex}`)
+          this.loadedProfiles[pubHex] = profile
           return profile
+        } catch (error) {
+          console.warn(`Error parsing profile content for ${pubHex}:`, error)
+          return false
         }
       }
+
+      return false
     } catch (error) {
-      console.warn(error)
+      console.warn(`Error fetching profile for ${pubHex}:`, error)
+      return false
     }
   }
 
-  // Get Feeds by user pubkey
+  // Get Feeds by user pubkey via REST API
   async getUserFeeds (pubHex) {
     try {
-      if (this.relays.length === 0) {
-        return []
-      }
-      let feeds = await new Promise((resolve) => {
-        let list = []
-        const closedRelays = []
+      const subId = generateSubId('user-feeds')
+      const filter = { limit: 5, kinds: [1], authors: [pubHex] }
 
-        const pool = RelayPool(this.relays)
-
-        pool.on('open', relay => {
-          relay.subscribe('subid', { limit: 5, kinds: [1], authors: [pubHex] })
-        })
-
-        pool.on('eose', relay => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          }
-          // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(list)
-          }
-        })
-
-        pool.on('event', (relay, subId, ev) => {
-          list = [...list, ev]
-        })
-        pool.on('error', (relay) => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          } // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(list)
-          }
-        })
-      })
-      // Remove duplicated feeds
-      feeds = feeds.filter((val, i, list) => {
-        const existingIndex = list.findIndex(value => value.id === val.id)
-        return existingIndex === i
-      })
-
-      // Sort from newest to oldest
-      feeds.sort((a, b) => b.created_at - a.created_at)
-
-      return feeds
-    } catch (error) {
-      console.warn(error)
-    }
-  }
-
-  // Get global feeds
-  async getGlobalFeeds () {
-    try {
-      if (this.relays.length === 0) {
-        return []
-      }
-
-      let feeds = await new Promise((resolve, reject) => {
-        let list = []
-        const closedRelays = []
-
-        const pool = RelayPool(this.relays)
-        // const pool = RelayPool([config.nostrRelay])
-        pool.on('open', relay => {
-          relay.subscribe('REQ', { limit: 10, kinds: [1], '#t': ['slpdex-socialmedia'] })
-        })
-
-        pool.on('eose', relay => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          }
-          // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(list)
-          }
-        })
-
-        pool.on('event', (relay, subId, ev) => {
-          console.log('post retrieved from ', relay.url, ev.sig)
-          list = [...list, ev]
-        })
-        pool.on('error', (relay) => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          }
-          // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(list)
-          }
-        })
-      })
+      let feeds = await this.restClient.queryEvents(subId, filter)
 
       // Remove duplicated feeds
       feeds = feeds.filter((val, i, list) => {
@@ -205,111 +108,80 @@ export default class NostrQueries {
       // Sort from newest to oldest
       feeds.sort((a, b) => b.created_at - a.created_at)
 
-      // console.log('feeds', feeds)
-
-      return feeds
+      return feeds || []
     } catch (error) {
-      console.warn(error)
-    }
-  }
-
-  // Get follow list by pubkey
-  async getFollowList (pubHex) {
-    if (this.relays.length === 0) {
+      console.warn(`Error fetching user feeds for ${pubHex}:`, error)
       return []
     }
-    return new Promise((resolve, reject) => {
-      let list = []
-      const closedRelays = []
-
-      const pool = RelayPool(this.relays)
-      // const pool = RelayPool([config.nostrRelay])
-      pool.on('open', relay => {
-        relay.subscribe('subid', { limit: 1, kinds: [3], authors: [pubHex] })
-      })
-
-      pool.on('eose', relay => {
-        relay.close()
-        if (!closedRelays.includes(relay)) {
-          closedRelays.push(relay)
-        }
-        // Resolve list if all relays are closed
-        if (closedRelays.length === this.relays.length) {
-          resolve(list)
-        }
-      })
-
-      pool.on('event', (relay, subId, ev) => {
-        // console.log('Received event:', ev)
-        // Merge list received from all relays
-        list = [...list, ...ev.tags]
-      })
-      pool.on('error', (relay) => {
-        relay.close()
-        if (!closedRelays.includes(relay)) {
-          closedRelays.push(relay)
-        }
-        // Resolve list if all relays are closed
-        if (closedRelays.length === this.relays.length) {
-          resolve(list)
-        }
-      })
-    })
   }
 
-  // Get event likes
+  // Get global feeds via REST API
+  async getGlobalFeeds () {
+    try {
+      const subId = generateSubId('global-feeds')
+      const filter = { limit: 10, kinds: [1], '#t': ['slpdex-socialmedia'] }
+
+      let feeds = await this.restClient.queryEvents(subId, filter)
+
+      // Filter out deleted posts
+      feeds = feeds.filter((ev) => {
+        const isDeleted = this.deletedPosts.find((val) => { return val.eventId === ev.id })
+        return !isDeleted
+      })
+
+      // Remove duplicated feeds
+      feeds = feeds.filter((val, i, list) => {
+        const existingIndex = list.findIndex(value => value.id === val.id)
+        return existingIndex === i
+      })
+
+      // Sort from newest to oldest
+      feeds.sort((a, b) => b.created_at - a.created_at)
+
+      return feeds || []
+    } catch (error) {
+      console.warn('Error fetching global feeds:', error)
+      return []
+    }
+  }
+
+  // Get follow list by pubkey via REST API
+  async getFollowList (pubHex) {
+    try {
+      const subId = generateSubId('follow-list')
+      const filter = { limit: 1, kinds: [3], authors: [pubHex] }
+
+      const events = await this.restClient.queryEvents(subId, filter)
+
+      // Get the most recent follow list (kind 3 events are replaceable)
+      if (events && events.length > 0) {
+        // Sort by created_at descending to get most recent
+        events.sort((a, b) => b.created_at - a.created_at)
+        const followListEvent = events[0]
+        return followListEvent.tags || []
+      }
+
+      return []
+    } catch (error) {
+      console.warn(`Error fetching follow list for ${pubHex}:`, error)
+      return []
+    }
+  }
+
+  // Get event likes via REST API
   async getPostLikes (postId) {
     try {
-      if (this.relays.length === 0) {
-        return []
-      }
-      let likesRes = await new Promise((resolve) => {
-        const likes = []
-        const closedRelays = []
+      const subId = generateSubId('post-likes')
+      const filter = { kinds: [7], '#e': [postId] }
 
-        const pool = RelayPool(this.relays)
-        pool.on('open', relay => {
-          relay.subscribe('subid', { kinds: [7], '#e': [postId] })
-        })
-
-        pool.on('eose', relay => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          }
-          // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(likes)
-          }
-        })
-
-        pool.on('event', (relay, subId, ev) => {
-          try {
-            // Count likes
-            if (ev.content === '+' || ev.content === '-') {
-              likes.push(ev)
-            }
-          } catch (error) {
-            // skip error
-          }
-        })
-        pool.on('error', (relay) => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          }
-          // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(likes)
-          }
-        })
-      })
+      let likesRes = await this.restClient.queryEvents(subId, filter)
 
       // Remove duplicated events
       likesRes = likesRes.filter((val, i, list) => {
         const existingIndex = list.findIndex(value => value.id === val.id)
         return existingIndex === i
       })
+
       // Get likes
       const likesArr = likesRes.filter((val, i, list) => {
         return val.content === '+'
@@ -319,129 +191,91 @@ export default class NostrQueries {
       const dislikesArr = likesRes.filter((val, i, list) => {
         return val.content === '-'
       })
+
       // For every user dislike remove a user like from the array
       for (let i = 0; i < dislikesArr.length; i++) {
         const disLike = dislikesArr[i]
         const likeExist = likesArr.findIndex(val => val.pubkey === disLike.pubkey)
         if (likeExist >= 0) likesArr.splice(likeExist, 1)
       }
+
       // Return array of likes.
       return likesArr
     } catch (error) {
-      console.warn(error)
+      console.warn(`Error fetching post likes for ${postId}:`, error)
+      return []
     }
   }
 
   async getChannelInfo (channelId) {
     try {
-      if (this.relays.length === 0) {
-        return false
-      }
       const existingChInfo = this.loadedChannelsInfo[channelId]
       if (existingChInfo) {
         console.log(`Returning ch info from cache :  ${existingChInfo.name}`)
         return existingChInfo
       }
-      for (let i = 0; i < this.relays.length; i++) {
-        const info = await new Promise((resolve) => {
-          const relay = this.relays[i]
-          // const pool = RelayPool(config.nostrRelays)
-          const pool = RelayPool([relay])
-          pool.on('open', relay => {
-            relay.subscribe('REQ', { limit: 1, kinds: [41], '#e': [channelId] })
-          })
 
-          pool.on('eose', relay => {
-            relay.close()
-            resolve(false)
-          })
+      const subId = generateSubId('channel-info')
+      const filter = { limit: 1, kinds: [41], '#e': [channelId] }
 
-          pool.on('event', (relay, subId, ev) => {
-            try {
-              const chInfo = JSON.parse(ev.content)
-              resolve(chInfo)
-            } catch (error) {
-              resolve(false)
-            }
-            relay.close()
-          })
-          pool.on('error', (relay) => {
-            relay.close()
-            resolve(false)
-          })
-        })
-        // Stop looking for profile if found
-        if (info) {
-          this.loadedChannelsInfo[channelId] = info
-          return info
+      const events = await this.restClient.queryEvents(subId, filter)
+
+      if (events && events.length > 0) {
+        // Sort by created_at descending to get most recent
+        events.sort((a, b) => b.created_at - a.created_at)
+        const channelEvent = events[0]
+        try {
+          const chInfo = JSON.parse(channelEvent.content)
+          this.loadedChannelsInfo[channelId] = chInfo
+          return chInfo
+        } catch (error) {
+          console.warn(`Error parsing channel info for ${channelId}:`, error)
+          return false
         }
       }
+
+      return false
     } catch (error) {
-      console.warn(error)
+      console.warn(`Error fetching channel info for ${channelId}:`, error)
+      return false
     }
   }
 
-  // Get associated pub keys from kind 04 inbox
+  // Get associated pub keys from kind 04 inbox via REST API
   async getDms (pubKey) {
     try {
-      if (this.relays.length === 0) {
-        return []
+      const subId = generateSubId('dms')
+      // Use array of filters for multiple conditions
+      const filters = [
+        { limit: 100, kinds: [4], '#p': [pubKey] }, // received messages
+        { limit: 100, kinds: [4], authors: [pubKey] } // sent messages
+      ]
+
+      const events = await this.restClient.queryEvents(subId, filters)
+
+      const list = []
+      for (const ev of events) {
+        if (ev.pubkey === pubKey) {
+          // Sent message - get recipient from tags
+          if (ev.tags && ev.tags.length > 0 && ev.tags[0][0] === 'p') {
+            list.push(ev.tags[0][1])
+          }
+        } else {
+          // Received message - get sender pubkey
+          list.push(ev.pubkey)
+        }
       }
 
-      let dms = await new Promise((resolve, reject) => {
-        let list = []
-        const closedRelays = []
-
-        const pool = RelayPool(this.relays)
-        // const pool = RelayPool([config.nostrRelay])
-        pool.on('open', relay => {
-          relay.subscribe('REQ', [
-            { limit: 100, kinds: [4], '#p': [pubKey] }, // received messages
-            { limit: 100, kinds: [4], authors: [pubKey] } // sent messages
-          ])
-        })
-
-        pool.on('eose', relay => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          }
-          // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(list)
-          }
-        })
-
-        pool.on('event', (relay, subId, ev) => {
-          // console.log('post retrieved from ', relay.url, ev.sig)
-          if (ev.pubkey === pubKey) {
-            const pk = ev.tags[0][1]
-            list = [...list, pk]
-          } else {
-            list = [...list, ev.pubkey]
-          }
-        })
-        pool.on('error', (relay) => {
-          relay.close()
-          if (!closedRelays.includes(relay)) {
-            closedRelays.push(relay)
-          }
-          // Resolve list if all relays are closed
-          if (closedRelays.length === this.relays.length) {
-            resolve(list)
-          }
-        })
-      })
-
-      // Remove duplicated feeds
-      dms = dms.filter((val, i, list) => {
+      // Remove duplicated pubkeys
+      const dms = list.filter((val, i, list) => {
         const existingIndex = list.findIndex(value => value === val)
         return existingIndex === i
       })
 
       return dms
     } catch (error) {
-      console.warn(error)
+      console.warn(`Error fetching DMs for ${pubKey}:`, error)
+      return []
     }
   }
 
@@ -503,6 +337,41 @@ export default class NostrQueries {
       return data
     } catch (error) {
       console.log('Error on getBlackList()')
+      throw error
+    }
+  }
+
+  // Get all deleted chats
+  async fetchDeletedChats () {
+    try {
+      const options = {
+        method: 'GET',
+        url: `${SERVER}nostr/deletedChat`
+      }
+      const result = await axios.request(options)
+      const { deletedChats } = result.data
+      this.deletedChats = deletedChats
+    } catch (error) {
+      console.error('Error fetchDeletedChats: ', error)
+      throw error
+    }
+  }
+
+  // Get all deleted posts
+  async fetchDeletedPosts () {
+    try {
+      const options = {
+        method: 'GET',
+        url: `${SERVER}nostr/deletedPost`
+      }
+      const result = await axios.request(options)
+      console.log('result', result)
+      const { deletedPosts } = result.data
+      console.log('deletedPosts', deletedPosts)
+
+      this.deletedPosts = deletedPosts
+    } catch (error) {
+      console.error('Error fetchDeletedPosts: ', error)
       throw error
     }
   }

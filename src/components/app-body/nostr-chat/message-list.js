@@ -13,7 +13,7 @@ import { Spinner } from 'react-bootstrap'
 function MessageList (props) {
   const { messages, loadedMessages } = props
   console.log('loadedMessages', loadedMessages)
-  const [groupedMessages, setGroupedMessages] = useState([])
+  const [groupedMessages, setGroupedMessages] = useState({})
   const msgContainerRef = useRef()
   // Group messages by date
   const groupMessagesByDate = useCallback((messages) => {

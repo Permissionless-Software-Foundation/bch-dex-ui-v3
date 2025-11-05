@@ -10,10 +10,10 @@
 // import * as nip19 from '@chris.troutner/nostr-tools/nip19'
 
 import { finalizeEvent } from 'nostr-tools/pure'
-import { Relay } from 'nostr-tools/relay'
 import BchNostr from 'bch-nostr'
 import * as nip19 from 'nostr-tools/nip19'
 import config from '../config/index.js'
+import NostrRestClient from './nostr-rest-client.js'
 
 class NostrBrowser {
   constructor (localConfig = {}) {
@@ -27,6 +27,9 @@ class NostrBrowser {
       relayWs: config.nostrRelay,
       topic: config.nostrTopic
     })
+
+    // Initialize REST client for publishing events
+    this.restClient = new NostrRestClient()
   }
 
   async testNostrUpload (inObj = {}) {
@@ -69,7 +72,6 @@ class NostrBrowser {
       //   tags: [['t', 'bch-dex-test-topic-01']]
       // }
 
-      const relayWs = config.nostrRelay
       const eventTemplate = {
         kind: 867,
         created_at: Math.floor(Date.now() / 1000),
@@ -82,18 +84,12 @@ class NostrBrowser {
       // console.log('signedEvent: ', signedEvent)
       const eventId = signedEvent.id
 
-      // Connect to a relay.
-      const relay = await Relay.connect(relayWs, {
-        /* global WebSocket */
-        webSocket: WebSocket
-      })
-      // console.log(`connected to ${relay.url}`)
+      // Publish the message via REST API
+      const result = await this.restClient.publishEvent(signedEvent)
 
-      // Publish the message to the relay.
-      await relay.publish(signedEvent)
-
-      // Close the connection to the relay.
-      relay.close()
+      if (!result.accepted) {
+        throw new Error(`Failed to publish event: ${result.message || 'Unknown error'}`)
+      }
 
       // const eventId = await this.bchNostr.post.uploadToNostr(inObj)
 

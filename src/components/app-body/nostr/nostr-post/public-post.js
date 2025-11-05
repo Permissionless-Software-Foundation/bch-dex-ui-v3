@@ -7,15 +7,17 @@ import React, { useState } from 'react'
 import { Container, Form, Button, Spinner } from 'react-bootstrap'
 import Accordion from 'react-bootstrap/Accordion'
 import { finalizeEvent } from 'nostr-tools/pure'
-import { Relay } from 'nostr-tools/relay'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
+import NostrRestClient from '../../../../services/nostr-rest-client.js'
 
 // Local libraries
 
 function PublicPost (props) {
   const [accordionKey, setAccordionKey] = useState('0')
   const [onFetch, setOnFetch] = useState(false)
-  const { bchWalletState, writeRelays } = props.appData
+  const { bchWalletState } = props.appData
+  // Initialize REST client for publishing
+  const restClient = new NostrRestClient()
   const [formData, setFormData] = useState({
     content: ''
   })
@@ -62,23 +64,13 @@ function PublicPost (props) {
       const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
       console.log('signedEvent: ', signedEvent)
 
-      // Publish the post to each relay.
-      writeRelays.map(async (relayUrl) => {
-        try {
-          // Connect to a relay.
-          const relay = await Relay.connect(relayUrl)
-          console.log(`connected to ${relay.url}`)
+      // Publish the post via REST API (handles broadcasting to multiple relays)
+      const result = await restClient.publishEvent(signedEvent)
+      console.log('result: ', result)
 
-          // Publish the message to the relay.
-          const result = await relay.publish(signedEvent)
-          console.log('result: ', result)
-
-          // Close the connection to the relay.
-          relay.close()
-        } catch (err) {
-          console.warn(`Skipping publishing to ${relayUrl} due to error: ${err}`)
-        }
-      })
+      if (!result.accepted) {
+        throw new Error(`Failed to publish post: ${result.message || 'Unknown error'}`)
+      }
 
       resetForm()
       setSuccessMsg('Post successfully published!')

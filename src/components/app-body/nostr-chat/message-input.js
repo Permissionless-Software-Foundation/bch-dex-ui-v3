@@ -9,11 +9,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons'
 import { finalizeEvent } from 'nostr-tools/pure'
 import { hexToBytes } from '@noble/hashes/utils' // already an installed dependency
-import { Relay } from 'nostr-tools/relay'
+import NostrRestClient from '../../../services/nostr-rest-client.js'
 
 function MessageInput (props) {
   const { appData, selectedChannel, profiles } = props
-  const { bchWalletState, writeRelays, nostrQueries } = appData
+  const { bchWalletState, nostrQueries } = appData
+  // Initialize REST client for publishing
+  const restClient = new NostrRestClient()
   const [isDm, setIsDm] = useState(false)
   const [dmProfile, setDmProfile] = useState(false)
   const [message, setMessage] = useState('')
@@ -57,25 +59,19 @@ function MessageInput (props) {
       const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
       console.log('signedEvent: ', signedEvent)
 
-      // Publish the post to each relay.
-      for (let i = 0; i < writeRelays.length; i++) {
-        const relayUrl = writeRelays[i]
+      // Publish the message via REST API (handles broadcasting to multiple relays)
+      try {
+        const result = await restClient.publishEvent(signedEvent)
+        console.log('result: ', result)
 
-        try {
-          // Connect to a relay.
-          const relay = await Relay.connect(relayUrl)
-          console.log(`connected to ${relay.url}`)
-
-          // Publish the message to the relay.
-          const result = await relay.publish(signedEvent)
-          console.log('result: ', result)
-
-          // Close the connection to the relay.
-          relay.close()
-        } catch (err) {
-          console.warn(`Skipping publishing to ${relayUrl} due to error: ${err}`)
+        if (!result.accepted) {
+          throw new Error(`Failed to publish: ${result.message || 'Unknown error'}`)
         }
+      } catch (err) {
+        console.warn(`Error publishing message: ${err}`)
+        throw err
       }
+
       setMessage('')
       setOnFetch(false)
     } catch (error) {
@@ -111,25 +107,19 @@ function MessageInput (props) {
       const signedEvent = finalizeEvent(eventTemplate, privateKeyBin)
       console.log('signedEvent: ', signedEvent)
 
-      // Publish the post to each relay.
-      for (let i = 0; i < writeRelays.length; i++) {
-        const relayUrl = writeRelays[i]
+      // Publish the message via REST API (handles broadcasting to multiple relays)
+      try {
+        const result = await restClient.publishEvent(signedEvent)
+        console.log('result: ', result)
 
-        try {
-          // Connect to a relay.
-          const relay = await Relay.connect(relayUrl)
-          console.log(`connected to ${relay.url}`)
-
-          // Publish the message to the relay.
-          const result = await relay.publish(signedEvent)
-          console.log('result: ', result)
-
-          // Close the connection to the relay.
-          relay.close()
-        } catch (err) {
-          console.warn(`Skipping publishing to ${relayUrl} due to error: ${err}`)
+        if (!result.accepted) {
+          throw new Error(`Failed to publish: ${result.message || 'Unknown error'}`)
         }
+      } catch (err) {
+        console.warn(`Error publishing message: ${err}`)
+        throw err
       }
+
       setMessage('')
       setOnFetch(false)
     } catch (error) {
