@@ -24,6 +24,9 @@ function AdminDeleteBtn (props) {
 
   // Check if the message was already deleted
   useEffect(() => {
+    if (!deletedData || !Array.isArray(deletedData)) {
+      return
+    }
     const exist = deletedData.find(val => val.eventId === eventId)
     if (exist) {
       setDeleted(true)

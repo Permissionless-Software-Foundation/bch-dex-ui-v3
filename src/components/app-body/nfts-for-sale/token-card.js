@@ -10,13 +10,11 @@ import Jdenticon from '@chris.troutner/react-jdenticon'
 // Local libraries
 import InfoButton from './info-button'
 import BuyButton from './buy-button'
-
+import SellerProfile from './seller-profile'
 function TokenCard (props) {
   const { token, appData, handleRefresh, hideBuyBtn } = props
   const [icon, setIcon] = useState(token.icon)
   const [tokenData, setTokenData] = useState(token.tokenData)
-
-  console.log('TokenCard() appData: ', appData)
 
   // Update icon state every token.icon and token.tokenData changes
   useEffect(() => {
@@ -28,8 +26,14 @@ function TokenCard (props) {
   return (
     <>
       <Col xs={12} sm={6} lg={4} style={{ padding: '25px' }}>
-        <Card>
-          <Card.Body style={{ textAlign: 'center' }}>
+        <Card className='shadow-sm'>
+          <Card.Body style={{ textAlign: 'center', padding: '10px' }}>
+            {/* Seller Profile Section */}
+            <Row className='mb-2'>
+              <Col className='text-center mb-2'>
+                <SellerProfile npub={token.makerNpub} appData={appData} />
+              </Col>
+            </Row>
             {/** If the icon is loaded, display it */
               icon && (
                 <Card.Img
@@ -50,7 +54,6 @@ function TokenCard (props) {
             <Card.Title style={{ textAlign: 'center', marginTop: '10px' }}>
               <h4>{token.ticker}</h4>
             </Card.Title>
-
             <Container>
               <Row>
                 <Col>
