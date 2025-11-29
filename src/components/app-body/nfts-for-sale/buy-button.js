@@ -6,6 +6,7 @@
 // Global npm libraries
 import React, { useState } from 'react'
 import { Button, Modal, Container, Row, Col, Spinner } from 'react-bootstrap'
+import AsyncLoad from '../../../services/async-load'
 
 function BuyButton (props) {
   const { token, appData, onSuccess } = props
@@ -45,9 +46,18 @@ function BuyButton (props) {
 
       // Generate a counter offer.
       const bchDexLib = appData.dexLib
-      const { offerData, partialHex } = await bchDexLib.take.takeOffer(
+      const { offerData, partialHex, counterOfferUtxo } = await bchDexLib.take.takeOffer(
         targetOffer
       )
+
+      // Get counter offer data
+      const asyncLoad = new AsyncLoad()
+      const { takerAddr, takerNpub, counterOfferAddr } = await asyncLoad.getCounterOfferMetadata(appData)
+
+      offerData.takerAddr = takerAddr
+      offerData.takerNpub = takerNpub
+      offerData.counterOfferAddr = counterOfferAddr
+      offerData.counterOfferUtxo = counterOfferUtxo.txid
 
       progress.push(<p key='progress-msg2'>Uploading counter offer to Nostr...</p>)
       setProgressMsg(progress)
