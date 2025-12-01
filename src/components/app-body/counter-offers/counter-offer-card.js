@@ -12,7 +12,7 @@ import InfoButton from './info-button'
 import CancelCounterOfferBtn from './cancel-counter-offer-btn'
 
 function CounterOfferCard (props) {
-  const { token } = props
+  const { token, appData, refreshTokens } = props
   const [icon, setIcon] = useState(token.icon)
 
   // Update icon state every token.icon changes
@@ -71,7 +71,11 @@ function CounterOfferCard (props) {
 
                 </Col>
                 <Col xs={4}>
-                  <CancelCounterOfferBtn token={props.token} />
+                  <CancelCounterOfferBtn
+                    token={props.token}
+                    appData={appData}
+                    refreshTokens={refreshTokens}
+                  />
                 </Col>
 
               </Row>

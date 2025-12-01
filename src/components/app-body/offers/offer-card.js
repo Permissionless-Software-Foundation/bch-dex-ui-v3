@@ -12,7 +12,7 @@ import InfoButton from './info-button'
 import CancelOfferBtn from './cancel-offer-btn'
 
 function OfferCard (props) {
-  const { token } = props
+  const { token, appData, refreshTokens } = props
   console.log('token: ', token)
   const [icon, setIcon] = useState(token.icon)
 
@@ -62,7 +62,11 @@ function OfferCard (props) {
                 </Col>
 
                 <Col xs={6}>
-                  <CancelOfferBtn token={props.token} />
+                  <CancelOfferBtn
+                    token={props.token}
+                    appData={appData}
+                    refreshTokens={refreshTokens}
+                  />
                 </Col>
 
               </Row>
