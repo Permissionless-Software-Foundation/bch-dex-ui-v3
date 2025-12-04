@@ -10,7 +10,6 @@ import AsyncLoad from '../../../services/async-load'
 
 function BuyButton (props) {
   const { token, appData, onSuccess } = props
-  console.log('props: ', props)
   const [show, setShow] = useState(false) // show the modal
   const [onFetch, setOnFetch] = useState(false) // show the spinner
   const [error, setError] = useState(false) // show the error message

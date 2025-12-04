@@ -13,6 +13,7 @@ import BuyButton from './buy-button'
 import SellerProfile from './seller-profile'
 function TokenCard (props) {
   const { token, appData, handleRefresh, hideBuyBtn } = props
+  console.log('token', token)
   const [icon, setIcon] = useState(token.icon)
   const [tokenData, setTokenData] = useState(token.tokenData)
 

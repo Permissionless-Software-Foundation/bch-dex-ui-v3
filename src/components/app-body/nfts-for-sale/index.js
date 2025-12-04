@@ -74,7 +74,8 @@ function NftsForSale (props) {
       return offer
     }
   }, [appData])
-  // Function to process token metadata (iconUrl , userData).
+
+  // Function to process token metadata (iconUrl , userData , tokenData).
   const processOfferMetadata = useCallback(async (offer) => {
     try {
       // Token icon
@@ -82,7 +83,15 @@ function NftsForSale (props) {
         offer.icon = offer.tokenIconUrl
         offer.iconAlreadyDownloaded = true
         offer.userData = JSON.parse(offer.userDataStr)
+        offer.mutableFromBackend = true
+        offer.mutableDataSource = 'backend'
       }
+      // tokenData
+      if (offer.tokenData) {
+        offer.tokenDataFromBackend = true
+        offer.tokenDataSource = 'backend'
+      }
+
       return offer
     } catch (error) {
       return offer
@@ -126,8 +135,10 @@ function NftsForSale (props) {
       for (let i = 0; i < tokens.length; i++) {
         const thisToken = tokens[i]
 
-        // data does not  need to be downloaded, so continue with the next one
-        if (thisToken.dataAlreadyDownloaded) continue
+        // Skip if already has tokenData (from backend or cache)
+        if (thisToken.dataAlreadyDownloaded || thisToken.tokenData) {
+          continue
+        }
 
         // Try to get token data.
         const tokenData = await appData.wallet.getTokenData(thisToken.tokenId)
@@ -135,6 +146,7 @@ function NftsForSale (props) {
         if (tokenData) {
           // Set data to the token object , this can be used to display the token name in the token card component.
           thisToken.tokenData = tokenData
+          thisToken.tokenDataSource = 'blockchain'
         }
 
         // Mark token to prevent fetch token data again.
@@ -195,6 +207,7 @@ function NftsForSale (props) {
           // Set the icon url to the token , this can be used to display the icon in the token card component.
           thisToken.icon = iconUrl
           thisToken.userData = userData
+          thisToken.mutableDataSource = 'blockchain'
         }
 
         // Mark token to prevent fetch token icon again.
@@ -210,15 +223,23 @@ function NftsForSale (props) {
   //  Check if token data exists in the cache and add it to the tokens object.
   const reviewNftCachedData = useCallback(async (offers) => {
     const cacheData = appData.nftForSaleCacheData
-    console.log(`Token data from cache: ${JSON.stringify(cacheData, null, 2)}`)
+    // console.log(`Token data from cache: ${JSON.stringify(cacheData, null, 2)}`)
+
     // Map all offers
     for (let i = 0; i < offers.length; i++) {
       const thisToken = offers[i]
+      // console.log(`Review offers:`,thisToken)
+
       const cacheToken = cacheData[thisToken.tokenId]
       // If cache data exists, add it to the token object
-      if (cacheToken) {
-        thisToken.tokenData = cacheToken.tokenData
+      // Only use cache if backend didn't provide the data
+      if (cacheToken && !thisToken.icon) {
         thisToken.icon = cacheToken.tokenIcon
+        thisToken.mutableDataSource = 'cache'
+      }
+      if (cacheToken && !thisToken.tokenData) {
+        thisToken.tokenData = cacheToken.tokenData
+        thisToken.tokenDataSource = 'cache'
       }
     }
   }, [appData])
@@ -228,13 +249,17 @@ function NftsForSale (props) {
     // Map all offers
     for (let i = 0; i < offers.length; i++) {
       const thisToken = offers[i]
-      // save token icon and token data in cache
-      const newTokenCacheData = {
-        tokenIcon: thisToken.icon,
-        tokenData: thisToken.tokenData
-      }
 
-      console.log('newTokenCacheData: ', newTokenCacheData)
+      // Only cache if we fetched it ourselves (not from backend)
+      // Backend data is already "cached" server-side, no need to duplicate
+
+      if (thisToken.tokenDataFromBackend && thisToken.mutableFromBackend) continue
+
+      const newTokenCacheData = {}
+
+      if (!thisToken.tokenDataFromBackend) newTokenCacheData.tokenData = thisToken.tokenData
+      if (!thisToken.mutableFromBackend) newTokenCacheData.tokenIcon = thisToken.icon
+
       appData.updateNFTCachedData(thisToken.tokenId, newTokenCacheData)
     }
   }, [appData])
